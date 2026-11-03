@@ -53,3 +53,4 @@ class TemplateThumbnailView @JvmOverloads constructor(
         canvas.drawPath(path, corePaint)
     }
 }
+

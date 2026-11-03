@@ -60,7 +60,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="Tất cả (20)"
+                android:text="Tất cả (100)"
                 android:textColor="#00FFFF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -73,7 +73,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="❤️ Dễ thương"
+                android:text="❤️ Dễ thương (25)"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -85,7 +85,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="🐾 Động vật"
+                android:text="🐾 Động vật (25)"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -97,7 +97,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="🚀 Vũ trụ"
+                android:text="🚀 Vũ trụ (25)"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -108,7 +108,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="🌸 Mandala"
+                android:text="🌸 Mandala (25)"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -119,7 +119,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvTemplates"
         android:layout_width="match_parent"
-        android:layout_height="320dp"
+        android:layout_height="380dp"
         android:layout_marginTop="12dp" />
 
     <!-- Button to remove stencil -->

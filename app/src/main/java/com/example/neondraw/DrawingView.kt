@@ -23,32 +23,7 @@ enum class SymmetryMode(val count: Int, val label: String) {
     KALEIDOSCOPE_8(8, "8x")
 }
 
-enum class StencilType(val idName: String, val title: String, val category: String, val emoji: String) {
-    NONE("none", "Tự do", "Tất cả", "✏️"),
-    HEART("heart", "Trái tim", "Dễ thương", "❤️"),
-    STAR("star", "Ngôi sao", "Dễ thương", "⭐"),
-    RAINBOW_CLOUD("rainbow_cloud", "Cầu vồng", "Dễ thương", "🌈"),
-    CUPCAKE("cupcake", "Bánh kem", "Dễ thương", "🧁"),
-    ICE_CREAM("ice_cream", "Kem ốc quế", "Dễ thương", "🍦"),
-    STRAWBERRY("strawberry", "Dâu tây", "Dễ thương", "🍓"),
 
-    CAT("cat", "Mèo con", "Động vật", "🐱"),
-    DOG("dog", "Cún con", "Động vật", "🐶"),
-    BUTTERFLY("butterfly", "Con bướm", "Động vật", "🦋"),
-    DINO("dino", "Khủng long", "Động vật", "🦕"),
-    DOLPHIN("dolphin", "Cá heo", "Động vật", "🐬"),
-    PENGUIN("penguin", "Cánh cụt", "Động vật", "🐧"),
-
-    ROCKET("rocket", "Tên lửa", "Vũ trụ", "🚀"),
-    MOON_STARS("moon_stars", "Mặt trăng", "Vũ trụ", "🌙"),
-    CROWN("crown", "Vương miện", "Vũ trụ", "👑"),
-    DIAMOND("diamond", "Kim cương", "Vũ trụ", "💎"),
-    MUSIC("music", "Nốt nhạc", "Vũ trụ", "🎵"),
-
-    LOTUS("lotus", "Hoa sen", "Mandala", "🪷"),
-    MANDALA_SUN("mandala_sun", "Mặt trời", "Mandala", "☀️"),
-    SPIDER_WEB("spider_web", "Mạng nhện", "Mandala", "🕸️")
-}
 
 class DrawingView @JvmOverloads constructor(
     context: Context,
