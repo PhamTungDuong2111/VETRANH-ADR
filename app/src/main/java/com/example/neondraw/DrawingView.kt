@@ -5,7 +5,32 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import kotlin.math.abs
+import kotlin.math.*
+
+enum class BrushType {
+    NEON,
+    RAINBOW,
+    STARS,
+    BEADS,
+    RIBBON
+}
+
+enum class SymmetryMode(val count: Int, val label: String) {
+    NONE(1, "1x"),
+    MIRROR_2(2, "2x"),
+    MIRROR_4(4, "4x"),
+    KALEIDOSCOPE_8(8, "8x")
+}
+
+enum class StencilType {
+    NONE,
+    HEART,
+    STAR,
+    BUTTERFLY,
+    CAT,
+    CROWN,
+    FLOWER
+}
 
 class DrawingView @JvmOverloads constructor(
     context: Context,
@@ -13,96 +38,583 @@ class DrawingView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val path = Path()
-    private val paint = Paint().apply {
+    data class Point(val x: Float, val y: Float)
+
+    data class Stroke(
+        val points: List<Point>,
+        val color: Int,
+        val strokeWidth: Float,
+        val brushType: BrushType,
+        val symmetryMode: SymmetryMode,
+        val isRainbow: Boolean = false
+    )
+
+    private val strokes = mutableListOf<Stroke>()
+    private val undoneStrokes = mutableListOf<Stroke>()
+
+    // Current stroke being drawn
+    private val currentPoints = mutableListOf<Point>()
+    private var currentColor = Color.CYAN
+    private var currentStrokeWidth = 24f
+    private var currentBrushType = BrushType.NEON
+    private var currentSymmetryMode = SymmetryMode.NONE
+    private var isRainbowMode = false
+
+    // Stencil / Guide
+    private var currentStencil = StencilType.NONE
+    private val stencilPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        color = Color.parseColor("#4400FFFF")
+        pathEffect = DashPathEffect(floatArrayOf(15f, 15f), 0f)
+    }
+
+    // Background Photo
+    private var backgroundBitmap: Bitmap? = null
+
+    // Offscreen buffer for fast rendering
+    private var canvasBitmap: Bitmap? = null
+    private var drawCanvas: Canvas? = null
+
+    // Glow and Core Paints
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
-        isAntiAlias = true
-        isDither = true
-        color = Color.CYAN
-        strokeWidth = 20f
-        maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.NORMAL)
     }
 
-    private val bitmapPaint = Paint(Paint.DITHER_FLAG)
-    private var extraBitmap: Bitmap? = null
-    private var extraCanvas: Canvas? = null
+    private val corePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        color = Color.WHITE
+    }
+
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+
+    var onHistoryChanged: ((canUndo: Boolean, canRedo: Boolean) -> Unit)? = null
 
     init {
-        // BlurMaskFilter requires software layer for consistent neon glow rendering
+        // Hardware acceleration can disable BlurMaskFilter on some devices; software layer guarantees glow
         setLayerType(LAYER_TYPE_SOFTWARE, null)
     }
 
-    fun setStrokeColor(color: Int) {
-        paint.color = color
+    fun setBrushColor(color: Int) {
+        currentColor = color
+        isRainbowMode = false
+    }
+
+    fun setRainbowMode(enabled: Boolean) {
+        isRainbowMode = enabled
+    }
+
+    fun isRainbow() = isRainbowMode
+
+    fun getBrushColor() = currentColor
+
+    fun setBrushWidth(width: Float) {
+        currentStrokeWidth = width.coerceIn(8f, 100f)
+    }
+
+    fun getBrushWidth() = currentStrokeWidth
+
+    fun setBrushType(type: BrushType) {
+        currentBrushType = type
+    }
+
+    fun getBrushType() = currentBrushType
+
+    fun setSymmetryMode(mode: SymmetryMode) {
+        currentSymmetryMode = mode
+    }
+
+    fun getSymmetryMode() = currentSymmetryMode
+
+    fun setStencil(stencil: StencilType) {
+        currentStencil = stencil
         invalidate()
     }
 
-    fun setStrokeWidth(width: Float) {
-        val w = if (width < 4f) 4f else width
-        paint.strokeWidth = w
-        paint.maskFilter = BlurMaskFilter(w / 2f, BlurMaskFilter.Blur.NORMAL)
+    fun getStencil() = currentStencil
+
+    fun setBackgroundPhoto(bitmap: Bitmap?) {
+        backgroundBitmap = bitmap
         invalidate()
     }
+
+    fun hasBackgroundPhoto() = backgroundBitmap != null
+
+    fun undo() {
+        if (strokes.isNotEmpty()) {
+            val last = strokes.removeAt(strokes.size - 1)
+            undoneStrokes.add(last)
+            renderAllStrokes()
+            invalidate()
+            notifyHistory()
+        }
+    }
+
+    fun redo() {
+        if (undoneStrokes.isNotEmpty()) {
+            val restored = undoneStrokes.removeAt(undoneStrokes.size - 1)
+            strokes.add(restored)
+            renderAllStrokes()
+            invalidate()
+            notifyHistory()
+        }
+    }
+
+    fun canUndo() = strokes.isNotEmpty()
+    fun canRedo() = undoneStrokes.isNotEmpty()
 
     fun clear() {
-        extraBitmap?.eraseColor(Color.TRANSPARENT)
-        path.reset()
+        strokes.clear()
+        undoneStrokes.clear()
+        currentPoints.clear()
+        backgroundBitmap = null
+        renderAllStrokes()
         invalidate()
+        notifyHistory()
+    }
+
+    private fun notifyHistory() {
+        onHistoryChanged?.invoke(canUndo(), canRedo())
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w > 0 && h > 0) {
-            extraBitmap?.recycle()
-            extraBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            extraCanvas = Canvas(extraBitmap!!)
+            canvasBitmap?.recycle()
+            canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            drawCanvas = Canvas(canvasBitmap!!)
+            renderAllStrokes()
+        }
+    }
+
+    private fun renderAllStrokes() {
+        drawCanvas?.let { cv ->
+            cv.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+            for (stroke in strokes) {
+                drawStroke(cv, stroke)
+            }
         }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        extraBitmap?.let { canvas.drawBitmap(it, 0f, 0f, bitmapPaint) }
-        canvas.drawPath(path, paint)
-    }
 
-    private var mX = 0f
-    private var mY = 0f
-    private val touchTolerance = 4f
+        // 1. Draw black background
+        canvas.drawColor(Color.BLACK)
 
-    private fun touchStart(x: Float, y: Float) {
-        path.reset()
-        path.moveTo(x, y)
-        mX = x
-        mY = y
-    }
+        // 2. Draw user photo if imported
+        backgroundBitmap?.let { bmp ->
+            val src = Rect(0, 0, bmp.width, bmp.height)
+            val dst = Rect(0, 0, width, height)
+            canvas.drawBitmap(bmp, src, dst, null)
+        }
 
-    private fun touchMove(x: Float, y: Float) {
-        val dx = abs(x - mX)
-        val dy = abs(y - mY)
-        if (dx >= touchTolerance || dy >= touchTolerance) {
-            path.quadTo(mX, mY, (x + mX) / 2f, (y + mY) / 2f)
-            mX = x
-            mY = y
+        // 3. Draw committed strokes
+        canvasBitmap?.let {
+            canvas.drawBitmap(it, 0f, 0f, null)
+        }
+
+        // 4. Draw current in-progress stroke
+        if (currentPoints.size >= 2) {
+            val tempStroke = Stroke(
+                points = currentPoints.toList(),
+                color = currentColor,
+                strokeWidth = currentStrokeWidth,
+                brushType = currentBrushType,
+                symmetryMode = currentSymmetryMode,
+                isRainbow = isRainbowMode
+            )
+            drawStroke(canvas, tempStroke)
+        }
+
+        // 5. Draw stencil guideline overlay
+        if (currentStencil != StencilType.NONE) {
+            drawStencilGuide(canvas)
         }
     }
 
-    private fun touchUp() {
-        path.lineTo(mX, mY)
-        extraCanvas?.drawPath(path, paint)
-        path.reset()
+    private fun drawStroke(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        if (pts.isEmpty()) return
+
+        val cx = width / 2f
+        val cy = height / 2f
+
+        val symCount = stroke.symmetryMode.count
+        for (i in 0 until symCount) {
+            canvas.save()
+            when (stroke.symmetryMode) {
+                SymmetryMode.NONE -> {}
+                SymmetryMode.MIRROR_2 -> {
+                    if (i == 1) {
+                        canvas.translate(width.toFloat(), 0f)
+                        canvas.scale(-1f, 1f)
+                    }
+                }
+                SymmetryMode.MIRROR_4 -> {
+                    val angle = i * 90f
+                    canvas.rotate(angle, cx, cy)
+                    if (i % 2 == 1) {
+                        canvas.scale(1f, -1f, cx, cy)
+                    }
+                }
+                SymmetryMode.KALEIDOSCOPE_8 -> {
+                    val angle = i * 45f
+                    canvas.rotate(angle, cx, cy)
+                    if (i % 2 == 1) {
+                        canvas.scale(1f, -1f, cx, cy)
+                    }
+                }
+            }
+
+            renderStrokeBrush(canvas, stroke)
+            canvas.restore()
+        }
+    }
+
+    private fun renderStrokeBrush(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        if (pts.size < 2) return
+
+        when (stroke.brushType) {
+            BrushType.NEON -> drawNeonPath(canvas, stroke)
+            BrushType.RAINBOW -> drawRainbowPath(canvas, stroke)
+            BrushType.STARS -> drawStarPath(canvas, stroke)
+            BrushType.BEADS -> drawBeadsPath(canvas, stroke)
+            BrushType.RIBBON -> drawRibbonPath(canvas, stroke)
+        }
+    }
+
+    private fun drawNeonPath(canvas: Canvas, stroke: Stroke) {
+        val path = createSmoothedPath(stroke.points)
+
+        // Outer Glow
+        glowPaint.color = stroke.color
+        glowPaint.strokeWidth = stroke.strokeWidth * 1.8f
+        glowPaint.alpha = 150
+        glowPaint.maskFilter = BlurMaskFilter(stroke.strokeWidth * 0.9f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawPath(path, glowPaint)
+
+        // Main colored stroke
+        glowPaint.strokeWidth = stroke.strokeWidth
+        glowPaint.alpha = 255
+        glowPaint.maskFilter = BlurMaskFilter(stroke.strokeWidth * 0.35f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawPath(path, glowPaint)
+
+        // Inner glowing white core
+        corePaint.strokeWidth = (stroke.strokeWidth * 0.35f).coerceAtLeast(3f)
+        corePaint.maskFilter = null
+        canvas.drawPath(path, corePaint)
+    }
+
+    private fun drawRainbowPath(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        for (i in 0 until pts.size - 1) {
+            val p1 = pts[i]
+            val p2 = pts[i + 1]
+            val hue = (i * 12f) % 360f
+            val segColor = Color.HSVToColor(floatArrayOf(hue, 1f, 1f))
+
+            glowPaint.color = segColor
+            glowPaint.strokeWidth = stroke.strokeWidth * 1.5f
+            glowPaint.alpha = 180
+            glowPaint.maskFilter = BlurMaskFilter(stroke.strokeWidth * 0.7f, BlurMaskFilter.Blur.NORMAL)
+            canvas.drawLine(p1.x, p1.y, p2.x, p2.y, glowPaint)
+
+            glowPaint.strokeWidth = stroke.strokeWidth
+            glowPaint.alpha = 255
+            glowPaint.maskFilter = null
+            canvas.drawLine(p1.x, p1.y, p2.x, p2.y, glowPaint)
+
+            corePaint.strokeWidth = (stroke.strokeWidth * 0.3f).coerceAtLeast(2f)
+            canvas.drawLine(p1.x, p1.y, p2.x, p2.y, corePaint)
+        }
+    }
+
+    private fun drawStarPath(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        val step = (stroke.strokeWidth * 1.5f).toInt().coerceAtLeast(20)
+        var distAccum = 0f
+
+        for (i in 0 until pts.size - 1) {
+            val p1 = pts[i]
+            val p2 = pts[i + 1]
+            val d = hypot(p2.x - p1.x, p2.y - p1.y)
+            distAccum += d
+            if (distAccum >= step || i == 0) {
+                distAccum = 0f
+                val col = if (stroke.isRainbow) {
+                    Color.HSVToColor(floatArrayOf((i * 18f) % 360f, 1f, 1f))
+                } else stroke.color
+
+                drawGlowStar(canvas, p2.x, p2.y, stroke.strokeWidth * 0.9f, col)
+            }
+        }
+    }
+
+    private fun drawGlowStar(canvas: Canvas, cx: Float, cy: Float, radius: Float, color: Int) {
+        val starPath = Path()
+        val spikes = 5
+        val rot = Math.PI / 2 * 3
+        val step = Math.PI / spikes
+        val innerRadius = radius * 0.45f
+
+        starPath.moveTo(cx, cy - radius)
+        for (i in 0 until spikes) {
+            val x1 = (cx + cos(rot + i * 2 * step) * radius).toFloat()
+            val y1 = (cy + sin(rot + i * 2 * step) * radius).toFloat()
+            starPath.lineTo(x1, y1)
+            val x2 = (cx + cos(rot + (i * 2 + 1) * step) * innerRadius).toFloat()
+            val y2 = (cy + sin(rot + (i * 2 + 1) * step) * innerRadius).toFloat()
+            starPath.lineTo(x2, y2)
+        }
+        starPath.close()
+
+        fillPaint.color = color
+        fillPaint.maskFilter = BlurMaskFilter(radius * 0.6f, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawPath(starPath, fillPaint)
+
+        fillPaint.maskFilter = null
+        fillPaint.color = Color.WHITE
+        canvas.drawPath(starPath, fillPaint)
+    }
+
+    private fun drawBeadsPath(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        val step = (stroke.strokeWidth * 1.1f).coerceAtLeast(15f)
+        var distAccum = 0f
+
+        for (i in 0 until pts.size - 1) {
+            val p1 = pts[i]
+            val p2 = pts[i + 1]
+            val d = hypot(p2.x - p1.x, p2.y - p1.y)
+            distAccum += d
+            if (distAccum >= step || i == 0) {
+                distAccum = 0f
+                val col = if (stroke.isRainbow) {
+                    Color.HSVToColor(floatArrayOf((i * 15f) % 360f, 1f, 1f))
+                } else stroke.color
+
+                val r = stroke.strokeWidth * 0.5f
+
+                // Glow
+                fillPaint.color = col
+                fillPaint.maskFilter = BlurMaskFilter(r * 0.8f, BlurMaskFilter.Blur.NORMAL)
+                canvas.drawCircle(p2.x, p2.y, r * 1.3f, fillPaint)
+
+                // Bead
+                fillPaint.maskFilter = null
+                fillPaint.color = col
+                canvas.drawCircle(p2.x, p2.y, r, fillPaint)
+
+                // White shiny center
+                fillPaint.color = Color.WHITE
+                canvas.drawCircle(p2.x - r * 0.25f, p2.y - r * 0.25f, r * 0.35f, fillPaint)
+            }
+        }
+    }
+
+    private fun drawRibbonPath(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        if (pts.size < 2) return
+
+        val offset = stroke.strokeWidth * 0.5f
+        val path1 = Path()
+        val path2 = Path()
+
+        for (i in 0 until pts.size - 1) {
+            val p1 = pts[i]
+            val p2 = pts[i + 1]
+            val angle = atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2
+            val ox = (cos(angle) * offset).toFloat()
+            val oy = (sin(angle) * offset).toFloat()
+
+            if (i == 0) {
+                path1.moveTo(p1.x + ox, p1.y + oy)
+                path2.moveTo(p1.x - ox, p1.y - oy)
+            }
+            path1.lineTo(p2.x + ox, p2.y + oy)
+            path2.lineTo(p2.x - ox, p2.y - oy)
+        }
+
+        val ribbonWidth = (stroke.strokeWidth * 0.4f).coerceAtLeast(4f)
+
+        // Glow line 1
+        glowPaint.color = stroke.color
+        glowPaint.strokeWidth = ribbonWidth * 2f
+        glowPaint.maskFilter = BlurMaskFilter(ribbonWidth, BlurMaskFilter.Blur.NORMAL)
+        canvas.drawPath(path1, glowPaint)
+        canvas.drawPath(path2, glowPaint)
+
+        // Core lines
+        corePaint.strokeWidth = ribbonWidth * 0.5f
+        corePaint.maskFilter = null
+        canvas.drawPath(path1, corePaint)
+        canvas.drawPath(path2, corePaint)
+    }
+
+    private fun createSmoothedPath(points: List<Point>): Path {
+        val path = Path()
+        if (points.isEmpty()) return path
+        path.moveTo(points[0].x, points[0].y)
+        for (i in 1 until points.size) {
+            val prev = points[i - 1]
+            val curr = points[i]
+            path.quadTo(prev.x, prev.y, (prev.x + curr.x) / 2f, (prev.y + curr.y) / 2f)
+        }
+        return path
+    }
+
+    private fun drawStencilGuide(canvas: Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val cx = w / 2f
+        val cy = h / 2f
+        val path = Path()
+
+        when (currentStencil) {
+            StencilType.HEART -> {
+                val s = min(w, h) * 0.35f
+                path.moveTo(cx, cy + s * 0.8f)
+                path.cubicTo(cx - s * 1.3f, cy - s * 0.2f, cx - s * 0.7f, cy - s * 1.2f, cx, cy - s * 0.4f)
+                path.cubicTo(cx + s * 0.7f, cy - s * 1.2f, cx + s * 1.3f, cy - s * 0.2f, cx, cy + s * 0.8f)
+            }
+            StencilType.STAR -> {
+                val radius = min(w, h) * 0.32f
+                val innerRadius = radius * 0.45f
+                val spikes = 5
+                val rot = Math.PI / 2 * 3
+                val step = Math.PI / spikes
+                path.moveTo(cx, cy - radius)
+                for (i in 0 until spikes) {
+                    val x1 = (cx + cos(rot + i * 2 * step) * radius).toFloat()
+                    val y1 = (cy + sin(rot + i * 2 * step) * radius).toFloat()
+                    path.lineTo(x1, y1)
+                    val x2 = (cx + cos(rot + (i * 2 + 1) * step) * innerRadius).toFloat()
+                    val y2 = (cy + sin(rot + (i * 2 + 1) * step) * innerRadius).toFloat()
+                    path.lineTo(x2, y2)
+                }
+                path.close()
+            }
+            StencilType.BUTTERFLY -> {
+                val s = min(w, h) * 0.25f
+                // Left wings
+                path.moveTo(cx, cy)
+                path.cubicTo(cx - s * 1.5f, cy - s * 1.5f, cx - s * 1.8f, cy, cx, cy + s * 0.2f)
+                path.cubicTo(cx - s * 1.2f, cy + s * 1.2f, cx - s * 0.8f, cy + s * 1.5f, cx, cy + s * 0.8f)
+                // Right wings
+                path.moveTo(cx, cy)
+                path.cubicTo(cx + s * 1.5f, cy - s * 1.5f, cx + s * 1.8f, cy, cx, cy + s * 0.2f)
+                path.cubicTo(cx + s * 1.2f, cy + s * 1.2f, cx + s * 0.8f, cy + s * 1.5f, cx, cy + s * 0.8f)
+            }
+            StencilType.CAT -> {
+                val r = min(w, h) * 0.22f
+                // Face
+                path.addCircle(cx, cy, r, Path.Direction.CW)
+                // Left ear
+                path.moveTo(cx - r * 0.8f, cy - r * 0.5f)
+                path.lineTo(cx - r * 1.1f, cy - r * 1.3f)
+                path.lineTo(cx - r * 0.2f, cy - r * 0.95f)
+                // Right ear
+                path.moveTo(cx + r * 0.8f, cy - r * 0.5f)
+                path.lineTo(cx + r * 1.1f, cy - r * 1.3f)
+                path.lineTo(cx + r * 0.2f, cy - r * 0.95f)
+            }
+            StencilType.CROWN -> {
+                val s = min(w, h) * 0.3f
+                path.moveTo(cx - s, cy + s * 0.5f)
+                path.lineTo(cx - s, cy - s * 0.3f)
+                path.lineTo(cx - s * 0.5f, cy)
+                path.lineTo(cx, cy - s * 0.6f)
+                path.lineTo(cx + s * 0.5f, cy)
+                path.lineTo(cx + s, cy - s * 0.3f)
+                path.lineTo(cx + s, cy + s * 0.5f)
+                path.close()
+            }
+            StencilType.FLOWER -> {
+                val r = min(w, h) * 0.12f
+                path.addCircle(cx, cy, r * 0.6f, Path.Direction.CW)
+                val petals = 6
+                for (i in 0 until petals) {
+                    val angle = i * (2 * Math.PI / petals)
+                    val px = (cx + cos(angle) * r * 1.6f).toFloat()
+                    val py = (cy + sin(angle) * r * 1.6f).toFloat()
+                    path.addCircle(px, py, r * 0.8f, Path.Direction.CW)
+                }
+            }
+            StencilType.NONE -> {}
+        }
+
+        canvas.drawPath(path, stencilPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val x = event.x
         val y = event.y
+
         when (event.action) {
-            MotionEvent.ACTION_DOWN -> touchStart(x, y)
-            MotionEvent.ACTION_MOVE -> touchMove(x, y)
-            MotionEvent.ACTION_UP -> touchUp()
+            MotionEvent.ACTION_DOWN -> {
+                currentPoints.clear()
+                currentPoints.add(Point(x, y))
+                invalidate()
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                currentPoints.add(Point(x, y))
+                invalidate()
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                currentPoints.add(Point(x, y))
+                if (currentPoints.size >= 2) {
+                    val completed = Stroke(
+                        points = currentPoints.toList(),
+                        color = currentColor,
+                        strokeWidth = currentStrokeWidth,
+                        brushType = currentBrushType,
+                        symmetryMode = currentSymmetryMode,
+                        isRainbow = isRainbowMode
+                    )
+                    strokes.add(completed)
+                    undoneStrokes.clear()
+                    drawCanvas?.let { cv ->
+                        drawStroke(cv, completed)
+                    }
+                    notifyHistory()
+                }
+                currentPoints.clear()
+                invalidate()
+                return true
+            }
         }
-        invalidate()
-        return true
+        return super.onTouchEvent(event)
+    }
+
+    fun exportBitmap(): Bitmap {
+        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+
+        // 1. Black background
+        canvas.drawColor(Color.BLACK)
+
+        // 2. Background image if present
+        backgroundBitmap?.let { bmp ->
+            val src = Rect(0, 0, bmp.width, bmp.height)
+            val dst = Rect(0, 0, width, height)
+            canvas.drawBitmap(bmp, src, dst, null)
+        }
+
+        // 3. Render all strokes
+        for (stroke in strokes) {
+            drawStroke(canvas, stroke)
+        }
+
+        return result
     }
 }
