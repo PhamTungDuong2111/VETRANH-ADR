@@ -31,7 +31,7 @@
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Undo"
+            android:contentDescription="@string/undo"
             android:src="@drawable/ic_undo"
             app:tint="#FFFFFF" />
 
@@ -40,7 +40,7 @@
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Redo"
+            android:contentDescription="@string/redo"
             android:src="@drawable/ic_redo"
             app:tint="#FFFFFF" />
 
@@ -76,6 +76,34 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <!-- Language Switcher Button -->
+        <LinearLayout
+            android:id="@+id/btnLanguage"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/bg_glass_pill"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="7dp">
+
+            <TextView
+                android:id="@+id/tvLangFlag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🇬🇧"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvLangCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:text="EN"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <!-- Stencil / Pattern Templates Button with badge -->
         <LinearLayout
             android:id="@+id/btnStencil"
@@ -96,7 +124,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:text="Mẫu vẽ"
+                android:text="@string/stencil_badge"
                 android:textColor="#FFE600"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -119,7 +147,7 @@
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Photo Background"
+            android:contentDescription="@string/photo_bg"
             android:src="@drawable/ic_image"
             app:tint="#FFFFFF" />
 
@@ -129,7 +157,7 @@
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Share"
+            android:contentDescription="@string/share"
             android:src="@drawable/ic_share"
             app:tint="#FF007F" />
 
@@ -139,7 +167,7 @@
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:background="@drawable/bg_glass_circle"
-            android:contentDescription="Save"
+            android:contentDescription="@string/save"
             android:src="@drawable/ic_save"
             app:tint="#39FF14" />
 
@@ -180,7 +208,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="✨ Neon"
+                    android:text="@string/brush_neon"
                     android:textColor="#00FFFF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -193,7 +221,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🌈 Cầu vồng"
+                    android:text="@string/brush_rainbow"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -205,7 +233,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="⭐ Ngôi sao"
+                    android:text="@string/brush_stars"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -217,7 +245,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🔮 Chuỗi hạt"
+                    android:text="@string/brush_beads"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -229,7 +257,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🎀 Ruy băng"
+                    android:text="@string/brush_ribbon"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -240,7 +268,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🎆 Pháo hoa"
+                    android:text="@string/brush_fireworks"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 

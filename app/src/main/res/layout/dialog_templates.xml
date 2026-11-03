@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="✨ Bộ sưu tập mẫu vẽ Neon"
+            android:text="@string/dialog_templates_title"
             android:textColor="#00FFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -35,7 +35,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Chọn mẫu định hình phát sáng để tô màu &amp; vẽ theo"
+        android:text="@string/dialog_templates_subtitle"
         android:textColor="#AAAAAA"
         android:textSize="12sp" />
 
@@ -60,7 +60,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="Tất cả (100)"
+                android:text="@string/cat_all"
                 android:textColor="#00FFFF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -73,7 +73,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="❤️ Dễ thương (25)"
+                android:text="@string/cat_cute"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -85,7 +85,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="🐾 Động vật (25)"
+                android:text="@string/cat_animals"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -97,7 +97,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="🚀 Vũ trụ (25)"
+                android:text="@string/cat_cosmic"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -108,7 +108,7 @@
                 android:background="@drawable/bg_glass_pill"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="🌸 Mandala (25)"
+                android:text="@string/cat_mandala"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
 
@@ -129,7 +129,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:backgroundTint="#33FFFFFF"
-        android:text="✕ Xóa mẫu vẽ (Vẽ tự do)"
+        android:text="@string/btn_remove_stencil"
         android:textColor="#FFFFFF"
         android:textSize="13sp" />
 

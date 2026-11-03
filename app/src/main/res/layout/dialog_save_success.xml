@@ -11,7 +11,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🎉 Lưu tranh thành công!"
+        android:text="@string/save_success_title"
         android:textColor="#39FF14"
         android:textSize="20sp"
         android:textStyle="bold" />
@@ -22,7 +22,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:gravity="center"
-        android:text="Ảnh đã được lưu vào Bộ sưu tập (Pictures/NeonDraw)"
+        android:text="@string/save_success_location"
         android:textColor="#CCCCCC"
         android:textSize="12sp" />
 
@@ -56,7 +56,7 @@
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:backgroundTint="#00FFFF"
-            android:text="👁️ Xem ảnh"
+            android:text="@string/btn_view_photo"
             android:textColor="#000000"
             android:textStyle="bold" />
 
@@ -67,7 +67,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:backgroundTint="#FF007F"
-            android:text="📤 Chia sẻ"
+            android:text="@string/btn_share_saved"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />
     </LinearLayout>
@@ -78,7 +78,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:backgroundTint="#26FFFFFF"
-        android:text="Tiếp tục vẽ"
+        android:text="@string/btn_continue_drawing"
         android:textColor="#FFFFFF" />
 
 </LinearLayout>

@@ -33,7 +33,7 @@ class TemplateAdapter(
         holder.tvCategory.text = item.category
 
         val isSelected = (item == selectedStencil)
-        val glowColor = when (item.category) {
+        val glowColor = when (item.categoryVi) {
             "Dễ thương" -> Color.parseColor("#FF007F")
             "Động vật" -> Color.parseColor("#00FFFF")
             "Vũ trụ" -> Color.parseColor("#FFE600")

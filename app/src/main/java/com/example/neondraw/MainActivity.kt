@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -38,6 +39,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnRedo: ImageButton
     private lateinit var btnSymmetry: LinearLayout
     private lateinit var tvSymmetry: TextView
+    private lateinit var btnLanguage: LinearLayout
+    private lateinit var tvLangFlag: TextView
+    private lateinit var tvLangCode: TextView
     private lateinit var btnStencil: LinearLayout
     private lateinit var tvStencilBadge: TextView
     private lateinit var btnToggleStencilGuide: ImageButton
@@ -92,16 +96,23 @@ class MainActivity : AppCompatActivity() {
         if (isGranted) {
             executeSaveArtwork()
         } else {
-            Toast.makeText(this, "Cần cấp quyền ghi bộ nhớ để lưu ảnh vào Thư viện!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.toast_permission_needed), Toast.LENGTH_LONG).show()
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        LocaleHelper.init(newBase)
+        super.attachBaseContext(LocaleHelper.applyLocale(newBase))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocaleHelper.init(this)
         setContentView(R.layout.activity_main)
 
         initViews()
         setupTopBar()
+        setupLanguageButton()
         setupBrushChips()
         setupBrushSize()
         setupColorPalette()
@@ -114,6 +125,9 @@ class MainActivity : AppCompatActivity() {
         btnRedo = findViewById(R.id.btnRedo)
         btnSymmetry = findViewById(R.id.btnSymmetry)
         tvSymmetry = findViewById(R.id.tvSymmetry)
+        btnLanguage = findViewById(R.id.btnLanguage)
+        tvLangFlag = findViewById(R.id.tvLangFlag)
+        tvLangCode = findViewById(R.id.tvLangCode)
         btnStencil = findViewById(R.id.btnStencil)
         tvStencilBadge = findViewById(R.id.tvStencilBadge)
         btnToggleStencilGuide = findViewById(R.id.btnToggleStencilGuide)
@@ -137,6 +151,43 @@ class MainActivity : AppCompatActivity() {
         layoutColors = findViewById(R.id.layoutColors)
     }
 
+    private fun setupLanguageButton() {
+        updateLanguageButtonDisplay()
+        btnLanguage.setOnClickListener {
+            showLanguageDialog()
+        }
+    }
+
+    private fun updateLanguageButtonDisplay() {
+        val isVi = LocaleHelper.isVietnamese()
+        tvLangFlag.text = if (isVi) "🇻🇳" else "🇬🇧"
+        tvLangCode.text = if (isVi) "VI" else "EN"
+    }
+
+    private fun showLanguageDialog() {
+        val currentLang = LocaleHelper.getLanguage(this)
+        val items = arrayOf(
+            getString(R.string.lang_english),
+            getString(R.string.lang_vietnamese)
+        )
+        val checkedItem = if (currentLang == LocaleHelper.LANG_VI) 1 else 0
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_language_title))
+            .setSingleChoiceItems(items, checkedItem) { dialog, which ->
+                val targetLang = if (which == 1) LocaleHelper.LANG_VI else LocaleHelper.LANG_EN
+                if (targetLang != currentLang) {
+                    LocaleHelper.setLanguage(this, targetLang)
+                    dialog.dismiss()
+                    recreate()
+                } else {
+                    dialog.dismiss()
+                }
+            }
+            .setNegativeButton(getString(R.string.dialog_clear_cancel), null)
+            .show()
+    }
+
     private fun setupTopBar() {
         btnUndo.setOnClickListener { drawingView.undo() }
         btnRedo.setOnClickListener { drawingView.redo() }
@@ -153,7 +204,7 @@ class MainActivity : AppCompatActivity() {
             tvSymmetry.text = next.label
             val color = if (next == SymmetryMode.NONE) Color.WHITE else Color.parseColor("#00FFFF")
             tvSymmetry.setTextColor(color)
-            Toast.makeText(this, "Chế độ đối xứng: ${next.label}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "${getString(R.string.symmetry)}: ${next.label}", Toast.LENGTH_SHORT).show()
         }
 
         // Stencil / Pattern Templates
@@ -165,22 +216,16 @@ class MainActivity : AppCompatActivity() {
             btnToggleStencilGuide.setImageResource(
                 if (isVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off
             )
-            Toast.makeText(
-                this,
-                if (isVisible) "Đã hiện nét khung mẫu vẽ" else "Đã ẩn nét khung mẫu vẽ",
-                Toast.LENGTH_SHORT
-            ).show()
         }
 
         // Import Photo Background
         btnPhoto.setOnClickListener {
             if (drawingView.hasBackgroundPhoto()) {
                 AlertDialog.Builder(this)
-                    .setTitle("Ảnh nền")
-                    .setMessage("Bạn muốn đổi ảnh nền khác hay xóa ảnh nền hiện tại?")
-                    .setPositiveButton("Đổi ảnh") { _, _ -> pickPhotoLauncher.launch("image/*") }
-                    .setNegativeButton("Xóa ảnh") { _, _ -> drawingView.setBackgroundPhoto(null) }
-                    .setNeutralButton("Hủy", null)
+                    .setTitle(getString(R.string.photo_bg))
+                    .setPositiveButton(getString(R.string.dialog_clear_cancel), null)
+                    .setNegativeButton(getString(R.string.clear)) { _, _ -> drawingView.setBackgroundPhoto(null) }
+                    .setNeutralButton(getString(R.string.photo_bg)) { _, _ -> pickPhotoLauncher.launch("image/*") }
                     .show()
             } else {
                 pickPhotoLauncher.launch("image/*")
@@ -196,10 +241,13 @@ class MainActivity : AppCompatActivity() {
         // Clear Canvas
         btnClear.setOnClickListener {
             AlertDialog.Builder(this)
-                .setTitle("Xóa bản vẽ")
-                .setMessage("Bạn có chắc chắn muốn xóa toàn bộ bản vẽ hiện tại?")
-                .setPositiveButton("Xóa") { _, _ -> drawingView.clear() }
-                .setNegativeButton("Hủy", null)
+                .setTitle(getString(R.string.dialog_clear_title))
+                .setMessage(getString(R.string.dialog_clear_msg))
+                .setPositiveButton(getString(R.string.dialog_clear_confirm)) { _, _ ->
+                    drawingView.clear()
+                    Toast.makeText(this, getString(R.string.toast_canvas_cleared), Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton(getString(R.string.dialog_clear_cancel), null)
                 .show()
         }
     }
@@ -241,7 +289,7 @@ class MainActivity : AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val size = progress.coerceAtLeast(8)
                 drawingView.setBrushWidth(size.toFloat())
-                tvBrushSize.text = "$size px"
+                tvBrushSize.text = getString(R.string.size_label, size)
                 updatePreviewDot(drawingView.getBrushColor(), size)
             }
 
@@ -249,6 +297,7 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        tvBrushSize.text = getString(R.string.size_label, seekBrushSize.progress)
         updatePreviewDot(drawingView.getBrushColor(), seekBrushSize.progress)
     }
 
@@ -259,44 +308,23 @@ class MainActivity : AppCompatActivity() {
             setStroke(2, Color.WHITE)
         }
         viewBrushPreview.background = drawable
-        val displaySize = (size / 2).coerceIn(12, 32)
-        val params = viewBrushPreview.layoutParams
-        params.width = displaySize
-        params.height = displaySize
-        viewBrushPreview.layoutParams = params
+        val param = viewBrushPreview.layoutParams
+        param.width = (size * 1.2f).toInt().coerceIn(24, 72)
+        param.height = param.width
+        viewBrushPreview.layoutParams = param
     }
 
     private fun setupColorPalette() {
         layoutColors.removeAllViews()
+        val btnSize = (38 * resources.displayMetrics.density).toInt()
+        val margin = (4 * resources.displayMetrics.density).toInt()
 
-        // 1. Rainbow Mode Button (dynamic rainbow colors along any stroke)
-        val btnRainbowColor = ImageButton(this).apply {
-            layoutParams = LinearLayout.LayoutParams(88, 88).apply {
-                marginEnd = 16
-            }
-            setImageResource(R.drawable.ic_rainbow)
-            setColorFilter(Color.WHITE)
-            val bg = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                colors = intArrayOf(Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA)
-                orientation = GradientDrawable.Orientation.LEFT_RIGHT
-                setStroke(4, Color.TRANSPARENT)
-            }
-            background = bg
-            setOnClickListener {
-                drawingView.setRainbowMode(true)
-                highlightColorSelection(this)
-                Toast.makeText(this@MainActivity, "Chế độ màu cầu vồng 🌈", Toast.LENGTH_SHORT).show()
-            }
-        }
-        layoutColors.addView(btnRainbowColor)
-
-        // 2. Individual Neon Colors
         for ((idx, color) in neonColors.withIndex()) {
             val colorBtn = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(80, 80).apply {
-                    marginEnd = 16
+                val params = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                    setMargins(margin, 0, margin, 0)
                 }
+                layoutParams = params
                 val bg = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
                     setColor(color)
@@ -369,32 +397,38 @@ class MainActivity : AppCompatActivity() {
             tvStencilBadge.text = selected.title
             btnToggleStencilGuide.visibility = View.VISIBLE
             btnToggleStencilGuide.setImageResource(R.drawable.ic_visibility)
-            Toast.makeText(this, "Đã chọn: ${selected.emoji} ${selected.title}! Hãy vẽ theo khung nhé ✨", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_stencil_selected, selected.emoji, selected.title), Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }
         rvTemplates.adapter = adapter
 
-        fun filterCategory(category: String, activeChip: TextView) {
+        fun filterCategory(categoryIndex: Int, activeChip: TextView) {
             categoryChips.forEach { chip ->
                 val isSelected = (chip == activeChip)
                 chip.setTextColor(if (isSelected) Color.parseColor("#00FFFF") else Color.WHITE)
                 chip.setBackgroundResource(R.drawable.bg_glass_pill)
             }
-            val filtered = if (category == "Tất cả") allTemplates else allTemplates.filter { it.category == category }
+            val filtered = when (categoryIndex) {
+                1 -> allTemplates.filter { it.categoryVi == "Dễ thương" }
+                2 -> allTemplates.filter { it.categoryVi == "Động vật" }
+                3 -> allTemplates.filter { it.categoryVi == "Vũ trụ" }
+                4 -> allTemplates.filter { it.categoryVi == "Mandala" }
+                else -> allTemplates
+            }
             adapter.updateList(filtered, drawingView.getStencil())
         }
 
-        chipAll.setOnClickListener { filterCategory("Tất cả", chipAll) }
-        chipCute.setOnClickListener { filterCategory("Dễ thương", chipCute) }
-        chipAnimal.setOnClickListener { filterCategory("Động vật", chipAnimal) }
-        chipMagic.setOnClickListener { filterCategory("Vũ trụ", chipMagic) }
-        chipMandala.setOnClickListener { filterCategory("Mandala", chipMandala) }
+        chipAll.setOnClickListener { filterCategory(0, chipAll) }
+        chipCute.setOnClickListener { filterCategory(1, chipCute) }
+        chipAnimal.setOnClickListener { filterCategory(2, chipAnimal) }
+        chipMagic.setOnClickListener { filterCategory(3, chipMagic) }
+        chipMandala.setOnClickListener { filterCategory(4, chipMandala) }
 
         btnRemove.setOnClickListener {
             drawingView.setStencil(StencilType.NONE)
-            tvStencilBadge.text = "Mẫu vẽ"
+            tvStencilBadge.text = getString(R.string.stencil_badge)
             btnToggleStencilGuide.visibility = View.GONE
-            Toast.makeText(this, "Đã chuyển sang chế độ Vẽ tự do", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_freehand_mode), Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }
 
@@ -408,11 +442,11 @@ class MainActivity : AppCompatActivity() {
                 val original = BitmapFactory.decodeStream(stream)
                 original?.let {
                     drawingView.setBackgroundPhoto(it)
-                    Toast.makeText(this, "Đã thêm ảnh nền! Hãy vẽ neon lên ảnh ✨", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.toast_photo_loaded), Toast.LENGTH_SHORT).show()
                 }
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Không thể tải ảnh: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_photo_error, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -457,26 +491,32 @@ class MainActivity : AppCompatActivity() {
                 val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                 val neonDir = File(picturesDir, "NeonDraw")
                 if (!neonDir.exists()) neonDir.mkdirs()
+                val imageFile = File(neonDir, filename)
 
-                val file = File(neonDir, filename)
-                FileOutputStream(file).use { out ->
+                FileOutputStream(imageFile).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                     out.flush()
                 }
 
-                MediaScannerConnection.scanFile(this, arrayOf(file.absolutePath), arrayOf("image/png")) { _, scanUri ->
-                    savedUri = scanUri
+                MediaScannerConnection.scanFile(
+                    this,
+                    arrayOf(imageFile.absolutePath),
+                    arrayOf("image/png")
+                ) { _, uri ->
+                    savedUri = uri
                 }
-                savedUri = Uri.fromFile(file)
+                savedUri = Uri.fromFile(imageFile)
             }
 
-            if (savedUri != null) {
-                showSaveSuccessDialog(bitmap, savedUri!!)
+            val finalUri = savedUri
+            if (finalUri != null) {
+                Toast.makeText(this, getString(R.string.toast_save_success), Toast.LENGTH_SHORT).show()
+                showSaveSuccessDialog(bitmap, finalUri)
             } else {
-                Toast.makeText(this, "🎉 Đã lưu thành công vào Bộ sưu tập (Pictures/NeonDraw)", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.toast_save_error, "URI null"), Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Lỗi khi lưu ảnh: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.toast_save_error, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -505,7 +545,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 startActivity(viewIntent)
             } catch (e: Exception) {
-                Toast.makeText(this, "Vui lòng mở ứng dụng Bộ sưu tập để xem ảnh!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.save_success_location), Toast.LENGTH_SHORT).show()
             }
             dialog.dismiss()
         }
@@ -536,9 +576,9 @@ class MainActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            startActivity(Intent.createChooser(shareIntent, "Chia sẻ tranh Neon Art"))
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.share)))
         } catch (e: Exception) {
-            Toast.makeText(this, "Lỗi chia sẻ: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_save_error, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 }

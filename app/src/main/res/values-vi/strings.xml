@@ -1,0 +1,59 @@
+<resources>
+    <string name="app_name">Neon Draw</string>
+    <string name="undo">Hoàn tác</string>
+    <string name="redo">Làm lại</string>
+    <string name="symmetry">Đối xứng</string>
+    <string name="stencil_badge">Mẫu vẽ</string>
+    <string name="photo_bg">Ảnh nền</string>
+    <string name="share">Chia sẻ</string>
+    <string name="save">Lưu</string>
+    <string name="clear">Xóa</string>
+    <string name="size_label">Cỡ nét: %1$ddp</string>
+
+    <!-- Brushes -->
+    <string name="brush_neon">Neon</string>
+    <string name="brush_rainbow">Cầu vồng</string>
+    <string name="brush_stars">Ngôi sao</string>
+    <string name="brush_beads">Chuỗi hạt</string>
+    <string name="brush_ribbon">Ruy băng</string>
+    <string name="brush_fireworks">Pháo hoa</string>
+
+    <!-- Template Dialog -->
+    <string name="dialog_templates_title">✨ Bộ sưu tập mẫu vẽ Neon</string>
+    <string name="dialog_templates_subtitle">Chọn mẫu định hình phát sáng để tô màu &amp; vẽ theo</string>
+    <string name="cat_all">Tất cả (100)</string>
+    <string name="cat_cute">❤️ Dễ thương (25)</string>
+    <string name="cat_animals">🐾 Động vật (25)</string>
+    <string name="cat_cosmic">🚀 Vũ trụ (25)</string>
+    <string name="cat_mandala">🌸 Mandala (25)</string>
+    <string name="btn_remove_stencil">✕ Xóa mẫu vẽ (Vẽ tự do)</string>
+
+    <!-- Save Dialog -->
+    <string name="save_success_title">🎉 Lưu tranh thành công!</string>
+    <string name="save_success_location">Ảnh đã được lưu vào Bộ sưu tập (Pictures/NeonDraw)</string>
+    <string name="btn_view_photo">👁️ Xem ảnh</string>
+    <string name="btn_share_saved">📤 Chia sẻ</string>
+    <string name="btn_continue_drawing">Tiếp tục vẽ</string>
+
+    <!-- Clear Dialog -->
+    <string name="dialog_clear_title">Xóa bản vẽ?</string>
+    <string name="dialog_clear_msg">Bạn có chắc chắn muốn xóa toàn bộ nét vẽ trên khung tranh không?</string>
+    <string name="dialog_clear_confirm">Xóa hết</string>
+    <string name="dialog_clear_cancel">Hủy</string>
+
+    <!-- Language Dialog -->
+    <string name="dialog_language_title">🌐 Chọn ngôn ngữ</string>
+    <string name="lang_english">🇬🇧 English (Mặc định)</string>
+    <string name="lang_vietnamese">🇻🇳 Tiếng Việt</string>
+
+    <!-- Toasts -->
+    <string name="toast_canvas_cleared">Đã xóa toàn bộ nét vẽ ✨</string>
+    <string name="toast_stencil_selected">Đã chọn: %1$s %2$s! Hãy vẽ theo khung nhé ✨</string>
+    <string name="toast_freehand_mode">Đã chuyển sang chế độ Vẽ tự do</string>
+    <string name="toast_photo_loaded">Đã thêm ảnh nền! Hãy vẽ neon lên ảnh ✨</string>
+    <string name="toast_photo_error">Không thể tải ảnh: %1$s</string>
+    <string name="toast_permission_needed">Cần cấp quyền ghi bộ nhớ để lưu ảnh vào Thư viện!</string>
+    <string name="toast_save_success">Đã lưu ảnh thành công vào Thư viện!</string>
+    <string name="toast_save_error">Không thể lưu ảnh: %1$s</string>
+    <string name="toast_lang_changed">Đã chuyển sang Tiếng Việt</string>
+</resources>

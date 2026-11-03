@@ -1,3 +1,59 @@
 <resources>
     <string name="app_name">Neon Draw</string>
+    <string name="undo">Undo</string>
+    <string name="redo">Redo</string>
+    <string name="symmetry">Symmetry</string>
+    <string name="stencil_badge">Templates</string>
+    <string name="photo_bg">Background</string>
+    <string name="share">Share</string>
+    <string name="save">Save</string>
+    <string name="clear">Clear</string>
+    <string name="size_label">Size: %1$ddp</string>
+
+    <!-- Brushes -->
+    <string name="brush_neon">Neon</string>
+    <string name="brush_rainbow">Rainbow</string>
+    <string name="brush_stars">Stars</string>
+    <string name="brush_beads">Beads</string>
+    <string name="brush_ribbon">Ribbon</string>
+    <string name="brush_fireworks">Fireworks</string>
+
+    <!-- Template Dialog -->
+    <string name="dialog_templates_title">✨ Neon Doodle Templates</string>
+    <string name="dialog_templates_subtitle">Select a glowing stencil guide to trace &amp; draw</string>
+    <string name="cat_all">All (100)</string>
+    <string name="cat_cute">❤️ Cute (25)</string>
+    <string name="cat_animals">🐾 Animals (25)</string>
+    <string name="cat_cosmic">🚀 Cosmic (25)</string>
+    <string name="cat_mandala">🌸 Mandala (25)</string>
+    <string name="btn_remove_stencil">✕ Remove Stencil (Freehand)</string>
+
+    <!-- Save Dialog -->
+    <string name="save_success_title">🎉 Artwork Saved!</string>
+    <string name="save_success_location">Image saved to Photo Gallery (Pictures/NeonDraw)</string>
+    <string name="btn_view_photo">👁️ View Image</string>
+    <string name="btn_share_saved">📤 Share</string>
+    <string name="btn_continue_drawing">Continue Drawing</string>
+
+    <!-- Clear Dialog -->
+    <string name="dialog_clear_title">Clear Canvas?</string>
+    <string name="dialog_clear_msg">Are you sure you want to clear your entire drawing?</string>
+    <string name="dialog_clear_confirm">Clear All</string>
+    <string name="dialog_clear_cancel">Cancel</string>
+
+    <!-- Language Dialog -->
+    <string name="dialog_language_title">🌐 Select Language</string>
+    <string name="lang_english">🇬🇧 English (Default)</string>
+    <string name="lang_vietnamese">🇻🇳 Tiếng Việt</string>
+
+    <!-- Toasts -->
+    <string name="toast_canvas_cleared">Canvas cleared ✨</string>
+    <string name="toast_stencil_selected">Selected: %1$s %2$s! Trace along the glow lines ✨</string>
+    <string name="toast_freehand_mode">Switched to Freehand drawing mode</string>
+    <string name="toast_photo_loaded">Background added! Draw neon on your photo ✨</string>
+    <string name="toast_photo_error">Cannot load image: %1$s</string>
+    <string name="toast_permission_needed">Storage permission needed to save images to Gallery!</string>
+    <string name="toast_save_success">Artwork saved successfully to Gallery!</string>
+    <string name="toast_save_error">Failed to save artwork: %1$s</string>
+    <string name="toast_lang_changed">Language changed to English</string>
 </resources>
