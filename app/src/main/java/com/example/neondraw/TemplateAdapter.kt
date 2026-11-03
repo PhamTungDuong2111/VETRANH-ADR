@@ -16,7 +16,7 @@ class TemplateAdapter(
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val container: View = view.findViewById(R.id.cardTemplate)
-        val tvEmoji: TextView = view.findViewById(R.id.tvTemplateEmoji)
+        val thumbnailView: TemplateThumbnailView = view.findViewById(R.id.thumbnailView)
         val tvTitle: TextView = view.findViewById(R.id.tvTemplateTitle)
         val tvCategory: TextView = view.findViewById(R.id.tvTemplateCategory)
     }
@@ -29,15 +29,24 @@ class TemplateAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
-        holder.tvEmoji.text = item.emoji
         holder.tvTitle.text = item.title
         holder.tvCategory.text = item.category
 
         val isSelected = (item == selectedStencil)
+        val glowColor = when (item.category) {
+            "Dễ thương" -> Color.parseColor("#FF007F")
+            "Động vật" -> Color.parseColor("#00FFFF")
+            "Vũ trụ" -> Color.parseColor("#FFE600")
+            "Mandala" -> Color.parseColor("#BC13FE")
+            else -> Color.parseColor("#00FFFF")
+        }
+
+        holder.thumbnailView.setStencil(item, glowColor)
+
         val border = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = 24f
-            setColor(if (isSelected) Color.parseColor("#4000FFFF") else Color.parseColor("#15FFFFFF"))
+            setColor(if (isSelected) Color.parseColor("#3300FFFF") else Color.parseColor("#15FFFFFF"))
             setStroke(
                 if (isSelected) 3 else 1,
                 if (isSelected) Color.parseColor("#00FFFF") else Color.parseColor("#33FFFFFF")
