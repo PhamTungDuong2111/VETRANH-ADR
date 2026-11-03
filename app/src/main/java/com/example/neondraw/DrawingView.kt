@@ -5,6 +5,7 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.abs
 
 class DrawingView @JvmOverloads constructor(
     context: Context,
@@ -16,11 +17,11 @@ class DrawingView @JvmOverloads constructor(
     private val paint = Paint().apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
         isAntiAlias = true
-        // default values – will be overwritten by activity
+        isDither = true
         color = Color.CYAN
         strokeWidth = 20f
-        // Neon glow using a blur mask filter
         maskFilter = BlurMaskFilter(15f, BlurMaskFilter.Blur.NORMAL)
     }
 
@@ -28,26 +29,33 @@ class DrawingView @JvmOverloads constructor(
     private var extraBitmap: Bitmap? = null
     private var extraCanvas: Canvas? = null
 
+    init {
+        // BlurMaskFilter requires software layer for consistent neon glow rendering
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
+
     fun setStrokeColor(color: Int) {
         paint.color = color
         invalidate()
     }
 
     fun setStrokeWidth(width: Float) {
-        paint.strokeWidth = width
-        // update blur proportionally for nice glow effect
-        paint.maskFilter = BlurMaskFilter(width / 2, BlurMaskFilter.Blur.NORMAL)
+        val w = if (width < 4f) 4f else width
+        paint.strokeWidth = w
+        paint.maskFilter = BlurMaskFilter(w / 2f, BlurMaskFilter.Blur.NORMAL)
         invalidate()
     }
 
     fun clear() {
-        extraCanvas?.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+        extraBitmap?.eraseColor(Color.TRANSPARENT)
+        path.reset()
         invalidate()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w > 0 && h > 0) {
+            extraBitmap?.recycle()
             extraBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             extraCanvas = Canvas(extraBitmap!!)
         }
@@ -56,13 +64,12 @@ class DrawingView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         extraBitmap?.let { canvas.drawBitmap(it, 0f, 0f, bitmapPaint) }
-        // draw current in‑progress path on top
         canvas.drawPath(path, paint)
     }
 
     private var mX = 0f
     private var mY = 0f
-    private val TOUCH_TOLERANCE = 4f
+    private val touchTolerance = 4f
 
     private fun touchStart(x: Float, y: Float) {
         path.reset()
@@ -72,10 +79,10 @@ class DrawingView @JvmOverloads constructor(
     }
 
     private fun touchMove(x: Float, y: Float) {
-        val dx = Math.abs(x - mX)
-        val dy = Math.abs(y - mY)
-        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-            path.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2)
+        val dx = abs(x - mX)
+        val dy = abs(y - mY)
+        if (dx >= touchTolerance || dy >= touchTolerance) {
+            path.quadTo(mX, mY, (x + mX) / 2f, (y + mY) / 2f)
             mX = x
             mY = y
         }
@@ -83,7 +90,6 @@ class DrawingView @JvmOverloads constructor(
 
     private fun touchUp() {
         path.lineTo(mX, mY)
-        // commit the path to the off‑screen bitmap
         extraCanvas?.drawPath(path, paint)
         path.reset()
     }
