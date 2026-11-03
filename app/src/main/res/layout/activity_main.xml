@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 2. Top Header Bar (Glassmorphic dark rounded bar) -->
+    <!-- 2. Top Header Toolbar (Glassmorphic dark neon rounded bar) -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
@@ -28,8 +28,8 @@
 
         <ImageButton
             android:id="@+id/btnUndo"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Undo"
             android:src="@drawable/ic_undo"
@@ -37,30 +37,26 @@
 
         <ImageButton
             android:id="@+id/btnRedo"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Redo"
             android:src="@drawable/ic_redo"
             app:tint="#FFFFFF" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
         <!-- Symmetry Mode Toggle -->
         <LinearLayout
             android:id="@+id/btnSymmetry"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_height="38dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_glass_pill"
             android:gravity="center_vertical"
-            android:paddingHorizontal="6dp">
+            android:paddingHorizontal="8dp">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:src="@drawable/ic_symmetry"
                 app:tint="#00FFFF" />
 
@@ -75,21 +71,53 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Stencil / Pattern Template Guide -->
-        <ImageButton
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Stencil / Pattern Templates Button with badge -->
+        <LinearLayout
             android:id="@+id/btnStencil"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_glass_pill"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_stencil"
+                app:tint="#FFE600" />
+
+            <TextView
+                android:id="@+id/tvStencilBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="Mẫu vẽ"
+                android:textColor="#FFE600"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Toggle Stencil Visibility Button -->
+        <ImageButton
+            android:id="@+id/btnToggleStencilGuide"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Templates"
-            android:src="@drawable/ic_stencil"
-            app:tint="#FFE600" />
+            android:contentDescription="Toggle Stencil"
+            android:src="@drawable/ic_visibility"
+            android:visibility="gone"
+            app:tint="#00FFFF" />
 
         <!-- Add Photo Background -->
         <ImageButton
             android:id="@+id/btnPhoto"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Photo Background"
             android:src="@drawable/ic_image"
@@ -98,8 +126,8 @@
         <!-- Share Artwork -->
         <ImageButton
             android:id="@+id/btnShare"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Share"
             android:src="@drawable/ic_share"
@@ -108,9 +136,9 @@
         <!-- Save Artwork to Gallery -->
         <ImageButton
             android:id="@+id/btnSave"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_glass_circle"
             android:contentDescription="Save"
             android:src="@drawable/ic_save"
             app:tint="#39FF14" />
@@ -165,7 +193,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🌈 Rainbow"
+                    android:text="🌈 Cầu vồng"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -177,7 +205,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="⭐ Stars"
+                    android:text="⭐ Ngôi sao"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -189,7 +217,7 @@
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🔮 Beads"
+                    android:text="🔮 Chuỗi hạt"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -197,10 +225,22 @@
                     android:id="@+id/brushRibbon"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="14dp"
                     android:paddingVertical="6dp"
-                    android:text="🎀 Ribbon"
+                    android:text="🎀 Ruy băng"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/brushFireworks"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_glass_pill"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="6dp"
+                    android:text="🎆 Pháo hoa"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
 
@@ -217,8 +257,8 @@
 
             <View
                 android:id="@+id/viewBrushPreview"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
                 android:layout_marginStart="4dp"
                 android:background="@drawable/bg_glass_circle" />
 

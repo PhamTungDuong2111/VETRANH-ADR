@@ -12,7 +12,8 @@ enum class BrushType {
     RAINBOW,
     STARS,
     BEADS,
-    RIBBON
+    RIBBON,
+    FIREWORKS
 }
 
 enum class SymmetryMode(val count: Int, val label: String) {
@@ -22,14 +23,31 @@ enum class SymmetryMode(val count: Int, val label: String) {
     KALEIDOSCOPE_8(8, "8x")
 }
 
-enum class StencilType {
-    NONE,
-    HEART,
-    STAR,
-    BUTTERFLY,
-    CAT,
-    CROWN,
-    FLOWER
+enum class StencilType(val idName: String, val title: String, val category: String, val emoji: String) {
+    NONE("none", "Tự do", "Tất cả", "✏️"),
+    HEART("heart", "Trái tim", "Dễ thương", "❤️"),
+    STAR("star", "Ngôi sao", "Dễ thương", "⭐"),
+    RAINBOW_CLOUD("rainbow_cloud", "Cầu vồng", "Dễ thương", "🌈"),
+    CUPCAKE("cupcake", "Bánh kem", "Dễ thương", "🧁"),
+    ICE_CREAM("ice_cream", "Kem ốc quế", "Dễ thương", "🍦"),
+    STRAWBERRY("strawberry", "Dâu tây", "Dễ thương", "🍓"),
+
+    CAT("cat", "Mèo con", "Động vật", "🐱"),
+    DOG("dog", "Cún con", "Động vật", "🐶"),
+    BUTTERFLY("butterfly", "Con bướm", "Động vật", "🦋"),
+    DINO("dino", "Khủng long", "Động vật", "🦕"),
+    DOLPHIN("dolphin", "Cá heo", "Động vật", "🐬"),
+    PENGUIN("penguin", "Cánh cụt", "Động vật", "🐧"),
+
+    ROCKET("rocket", "Tên lửa", "Vũ trụ", "🚀"),
+    MOON_STARS("moon_stars", "Mặt trăng", "Vũ trụ", "🌙"),
+    CROWN("crown", "Vương miện", "Vũ trụ", "👑"),
+    DIAMOND("diamond", "Kim cương", "Vũ trụ", "💎"),
+    MUSIC("music", "Nốt nhạc", "Vũ trụ", "🎵"),
+
+    LOTUS("lotus", "Hoa sen", "Mandala", "🪷"),
+    MANDALA_SUN("mandala_sun", "Mặt trời", "Mandala", "☀️"),
+    SPIDER_WEB("spider_web", "Mạng nhện", "Mandala", "🕸️")
 }
 
 class DrawingView @JvmOverloads constructor(
@@ -62,11 +80,12 @@ class DrawingView @JvmOverloads constructor(
 
     // Stencil / Guide
     private var currentStencil = StencilType.NONE
+    private var isStencilGuideVisible = true
     private val stencilPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
-        color = Color.parseColor("#4400FFFF")
-        pathEffect = DashPathEffect(floatArrayOf(15f, 15f), 0f)
+        strokeWidth = 3.5f
+        color = Color.parseColor("#6600FFFF")
+        pathEffect = DashPathEffect(floatArrayOf(16f, 12f), 0f)
     }
 
     // Background Photo
@@ -134,10 +153,19 @@ class DrawingView @JvmOverloads constructor(
 
     fun setStencil(stencil: StencilType) {
         currentStencil = stencil
+        isStencilGuideVisible = (stencil != StencilType.NONE)
         invalidate()
     }
 
     fun getStencil() = currentStencil
+
+    fun toggleStencilGuideVisibility(): Boolean {
+        isStencilGuideVisible = !isStencilGuideVisible
+        invalidate()
+        return isStencilGuideVisible
+    }
+
+    fun isStencilVisible() = isStencilGuideVisible
 
     fun setBackgroundPhoto(bitmap: Bitmap?) {
         backgroundBitmap = bitmap
@@ -205,10 +233,10 @@ class DrawingView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // 1. Draw black background
+        // 1. Draw black canvas
         canvas.drawColor(Color.BLACK)
 
-        // 2. Draw user photo if imported
+        // 2. Draw user photo background if present
         backgroundBitmap?.let { bmp ->
             val src = Rect(0, 0, bmp.width, bmp.height)
             val dst = Rect(0, 0, width, height)
@@ -234,7 +262,7 @@ class DrawingView @JvmOverloads constructor(
         }
 
         // 5. Draw stencil guideline overlay
-        if (currentStencil != StencilType.NONE) {
+        if (currentStencil != StencilType.NONE && isStencilGuideVisible) {
             drawStencilGuide(canvas)
         }
     }
@@ -288,6 +316,7 @@ class DrawingView @JvmOverloads constructor(
             BrushType.STARS -> drawStarPath(canvas, stroke)
             BrushType.BEADS -> drawBeadsPath(canvas, stroke)
             BrushType.RIBBON -> drawRibbonPath(canvas, stroke)
+            BrushType.FIREWORKS -> drawFireworksPath(canvas, stroke)
         }
     }
 
@@ -445,7 +474,7 @@ class DrawingView @JvmOverloads constructor(
 
         val ribbonWidth = (stroke.strokeWidth * 0.4f).coerceAtLeast(4f)
 
-        // Glow line 1
+        // Glow line 1 & 2
         glowPaint.color = stroke.color
         glowPaint.strokeWidth = ribbonWidth * 2f
         glowPaint.maskFilter = BlurMaskFilter(ribbonWidth, BlurMaskFilter.Blur.NORMAL)
@@ -457,6 +486,43 @@ class DrawingView @JvmOverloads constructor(
         corePaint.maskFilter = null
         canvas.drawPath(path1, corePaint)
         canvas.drawPath(path2, corePaint)
+    }
+
+    private fun drawFireworksPath(canvas: Canvas, stroke: Stroke) {
+        val pts = stroke.points
+        val step = (stroke.strokeWidth * 1.8f).coerceAtLeast(25f)
+        var distAccum = 0f
+
+        for (i in 0 until pts.size - 1) {
+            val p1 = pts[i]
+            val p2 = pts[i + 1]
+            val d = hypot(p2.x - p1.x, p2.y - p1.y)
+            distAccum += d
+            if (distAccum >= step || i == 0) {
+                distAccum = 0f
+                val col = if (stroke.isRainbow) {
+                    Color.HSVToColor(floatArrayOf((i * 20f) % 360f, 1f, 1f))
+                } else stroke.color
+
+                val sparks = 8
+                val sparkRadius = stroke.strokeWidth * 1.4f
+                glowPaint.color = col
+                glowPaint.strokeWidth = 3f
+                glowPaint.maskFilter = BlurMaskFilter(4f, BlurMaskFilter.Blur.NORMAL)
+
+                for (s in 0 until sparks) {
+                    val a = s * (2 * Math.PI / sparks)
+                    val sx = (p2.x + cos(a) * sparkRadius).toFloat()
+                    val sy = (p2.y + sin(a) * sparkRadius).toFloat()
+                    canvas.drawLine(p2.x, p2.y, sx, sy, glowPaint)
+                }
+
+                // White shiny center
+                fillPaint.color = Color.WHITE
+                fillPaint.maskFilter = null
+                canvas.drawCircle(p2.x, p2.y, stroke.strokeWidth * 0.35f, fillPaint)
+            }
+        }
     }
 
     private fun createSmoothedPath(points: List<Point>): Path {
@@ -476,17 +542,21 @@ class DrawingView @JvmOverloads constructor(
         val h = height.toFloat()
         val cx = w / 2f
         val cy = h / 2f
+        val minDim = min(w, h)
         val path = Path()
 
         when (currentStencil) {
+            StencilType.NONE -> return
+
             StencilType.HEART -> {
-                val s = min(w, h) * 0.35f
-                path.moveTo(cx, cy + s * 0.8f)
+                val s = minDim * 0.35f
+                path.moveTo(cx, cy + s * 0.85f)
                 path.cubicTo(cx - s * 1.3f, cy - s * 0.2f, cx - s * 0.7f, cy - s * 1.2f, cx, cy - s * 0.4f)
-                path.cubicTo(cx + s * 0.7f, cy - s * 1.2f, cx + s * 1.3f, cy - s * 0.2f, cx, cy + s * 0.8f)
+                path.cubicTo(cx + s * 0.7f, cy - s * 1.2f, cx + s * 1.3f, cy - s * 0.2f, cx, cy + s * 0.85f)
             }
+
             StencilType.STAR -> {
-                val radius = min(w, h) * 0.32f
+                val radius = minDim * 0.35f
                 val innerRadius = radius * 0.45f
                 val spikes = 5
                 val rot = Math.PI / 2 * 3
@@ -502,56 +572,307 @@ class DrawingView @JvmOverloads constructor(
                 }
                 path.close()
             }
+
+            StencilType.RAINBOW_CLOUD -> {
+                val s = minDim * 0.3f
+                // 3 rainbow arcs
+                val arcRect1 = RectF(cx - s * 1.2f, cy - s * 0.8f, cx + s * 1.2f, cy + s * 0.8f)
+                path.arcTo(arcRect1, 180f, 180f, true)
+                val arcRect2 = RectF(cx - s * 0.9f, cy - s * 0.5f, cx + s * 0.9f, cy + s * 0.7f)
+                path.arcTo(arcRect2, 180f, 180f, true)
+                // Cloud left
+                path.addCircle(cx - s * 0.9f, cy + s * 0.3f, s * 0.35f, Path.Direction.CW)
+                // Cloud right
+                path.addCircle(cx + s * 0.9f, cy + s * 0.3f, s * 0.35f, Path.Direction.CW)
+            }
+
+            StencilType.CUPCAKE -> {
+                val s = minDim * 0.25f
+                // Base cup
+                path.moveTo(cx - s * 0.8f, cy)
+                path.lineTo(cx - s * 0.5f, cy + s * 1.1f)
+                path.lineTo(cx + s * 0.5f, cy + s * 1.1f)
+                path.lineTo(cx + s * 0.8f, cy)
+                path.close()
+                // Fluffy frosting
+                path.moveTo(cx - s * 0.8f, cy)
+                path.cubicTo(cx - s * 1.1f, cy - s * 0.6f, cx - s * 0.4f, cy - s * 1.0f, cx, cy - s * 1.1f)
+                path.cubicTo(cx + s * 0.4f, cy - s * 1.0f, cx + s * 1.1f, cy - s * 0.6f, cx + s * 0.8f, cy)
+                // Cherry
+                path.addCircle(cx, cy - s * 1.25f, s * 0.18f, Path.Direction.CW)
+            }
+
+            StencilType.ICE_CREAM -> {
+                val s = minDim * 0.28f
+                // Cone
+                path.moveTo(cx, cy + s * 1.2f)
+                path.lineTo(cx - s * 0.6f, cy - s * 0.1f)
+                path.lineTo(cx + s * 0.6f, cy - s * 0.1f)
+                path.close()
+                // Scoop 1
+                path.addCircle(cx, cy - s * 0.4f, s * 0.5f, Path.Direction.CW)
+                // Cherry
+                path.addCircle(cx, cy - s * 1.0f, s * 0.15f, Path.Direction.CW)
+            }
+
+            StencilType.STRAWBERRY -> {
+                val s = minDim * 0.3f
+                path.moveTo(cx, cy + s * 0.9f)
+                path.cubicTo(cx - s * 1.1f, cy + s * 0.2f, cx - s * 0.8f, cy - s * 0.8f, cx, cy - s * 0.7f)
+                path.cubicTo(cx + s * 0.8f, cy - s * 0.8f, cx + s * 1.1f, cy + s * 0.2f, cx, cy + s * 0.9f)
+                // Leaf crown
+                path.moveTo(cx - s * 0.5f, cy - s * 0.7f)
+                path.lineTo(cx, cy - s * 1.05f)
+                path.lineTo(cx + s * 0.5f, cy - s * 0.7f)
+            }
+
+            StencilType.CAT -> {
+                val r = minDim * 0.25f
+                // Head
+                path.addCircle(cx, cy, r, Path.Direction.CW)
+                // Ears
+                path.moveTo(cx - r * 0.8f, cy - r * 0.5f)
+                path.lineTo(cx - r * 1.1f, cy - r * 1.35f)
+                path.lineTo(cx - r * 0.2f, cy - r * 0.95f)
+                path.moveTo(cx + r * 0.8f, cy - r * 0.5f)
+                path.lineTo(cx + r * 1.1f, cy - r * 1.35f)
+                path.lineTo(cx + r * 0.2f, cy - r * 0.95f)
+                // Whiskers
+                path.moveTo(cx - r * 0.4f, cy + r * 0.1f)
+                path.lineTo(cx - r * 1.2f, cy - r * 0.05f)
+                path.moveTo(cx - r * 0.4f, cy + r * 0.3f)
+                path.lineTo(cx - r * 1.2f, cy + r * 0.4f)
+                path.moveTo(cx + r * 0.4f, cy + r * 0.1f)
+                path.lineTo(cx + r * 1.2f, cy - r * 0.05f)
+                path.moveTo(cx + r * 0.4f, cy + r * 0.3f)
+                path.lineTo(cx + r * 1.2f, cy + r * 0.4f)
+            }
+
+            StencilType.DOG -> {
+                val r = minDim * 0.24f
+                path.addCircle(cx, cy, r, Path.Direction.CW)
+                // Floppy Ears
+                path.moveTo(cx - r * 0.7f, cy - r * 0.6f)
+                path.cubicTo(cx - r * 1.4f, cy - r * 0.2f, cx - r * 1.3f, cy + r * 0.9f, cx - r * 0.7f, cy + r * 0.6f)
+                path.moveTo(cx + r * 0.7f, cy - r * 0.6f)
+                path.cubicTo(cx + r * 1.4f, cy - r * 0.2f, cx + r * 1.3f, cy + r * 0.9f, cx + r * 0.7f, cy + r * 0.6f)
+                // Snout
+                path.addCircle(cx, cy + r * 0.25f, r * 0.35f, Path.Direction.CW)
+            }
+
             StencilType.BUTTERFLY -> {
-                val s = min(w, h) * 0.25f
+                val s = minDim * 0.25f
                 // Left wings
                 path.moveTo(cx, cy)
-                path.cubicTo(cx - s * 1.5f, cy - s * 1.5f, cx - s * 1.8f, cy, cx, cy + s * 0.2f)
-                path.cubicTo(cx - s * 1.2f, cy + s * 1.2f, cx - s * 0.8f, cy + s * 1.5f, cx, cy + s * 0.8f)
+                path.cubicTo(cx - s * 1.6f, cy - s * 1.6f, cx - s * 1.8f, cy, cx, cy + s * 0.2f)
+                path.cubicTo(cx - s * 1.3f, cy + s * 1.3f, cx - s * 0.8f, cy + s * 1.6f, cx, cy + s * 0.8f)
                 // Right wings
                 path.moveTo(cx, cy)
-                path.cubicTo(cx + s * 1.5f, cy - s * 1.5f, cx + s * 1.8f, cy, cx, cy + s * 0.2f)
-                path.cubicTo(cx + s * 1.2f, cy + s * 1.2f, cx + s * 0.8f, cy + s * 1.5f, cx, cy + s * 0.8f)
+                path.cubicTo(cx + s * 1.6f, cy - s * 1.6f, cx + s * 1.8f, cy, cx, cy + s * 0.2f)
+                path.cubicTo(cx + s * 1.3f, cy + s * 1.3f, cx + s * 0.8f, cy + s * 1.6f, cx, cy + s * 0.8f)
+                // Antennae
+                path.moveTo(cx, cy - s * 0.3f)
+                path.quadTo(cx - s * 0.4f, cy - s * 0.9f, cx - s * 0.6f, cy - s * 0.9f)
+                path.moveTo(cx, cy - s * 0.3f)
+                path.quadTo(cx + s * 0.4f, cy - s * 0.9f, cx + s * 0.6f, cy - s * 0.9f)
             }
-            StencilType.CAT -> {
-                val r = min(w, h) * 0.22f
-                // Face
-                path.addCircle(cx, cy, r, Path.Direction.CW)
-                // Left ear
-                path.moveTo(cx - r * 0.8f, cy - r * 0.5f)
-                path.lineTo(cx - r * 1.1f, cy - r * 1.3f)
-                path.lineTo(cx - r * 0.2f, cy - r * 0.95f)
-                // Right ear
-                path.moveTo(cx + r * 0.8f, cy - r * 0.5f)
-                path.lineTo(cx + r * 1.1f, cy - r * 1.3f)
-                path.lineTo(cx + r * 0.2f, cy - r * 0.95f)
-            }
-            StencilType.CROWN -> {
-                val s = min(w, h) * 0.3f
-                path.moveTo(cx - s, cy + s * 0.5f)
-                path.lineTo(cx - s, cy - s * 0.3f)
-                path.lineTo(cx - s * 0.5f, cy)
-                path.lineTo(cx, cy - s * 0.6f)
-                path.lineTo(cx + s * 0.5f, cy)
-                path.lineTo(cx + s, cy - s * 0.3f)
-                path.lineTo(cx + s, cy + s * 0.5f)
+
+            StencilType.DINO -> {
+                val s = minDim * 0.28f
+                // Cute T-rex silhouette outline
+                path.moveTo(cx - s * 0.8f, cy + s * 0.8f) // tail tip
+                path.quadTo(cx - s * 0.4f, cy + s * 0.3f, cx - s * 0.2f, cy - s * 0.2f) // back
+                path.lineTo(cx - s * 0.1f, cy - s * 0.8f) // neck
+                path.lineTo(cx + s * 0.5f, cy - s * 0.8f) // head top
+                path.lineTo(cx + s * 0.6f, cy - s * 0.5f) // snout
+                path.lineTo(cx + s * 0.2f, cy - s * 0.4f) // mouth
+                path.lineTo(cx + s * 0.1f, cy - s * 0.1f) // chest
+                path.lineTo(cx + s * 0.3f, cy + s * 0.1f) // tiny arm
+                path.lineTo(cx + s * 0.15f, cy + s * 0.2f)
+                path.lineTo(cx + s * 0.3f, cy + s * 0.8f) // leg front
+                path.lineTo(cx, cy + s * 0.8f) // belly
                 path.close()
             }
-            StencilType.FLOWER -> {
-                val r = min(w, h) * 0.12f
-                path.addCircle(cx, cy, r * 0.6f, Path.Direction.CW)
-                val petals = 6
-                for (i in 0 until petals) {
-                    val angle = i * (2 * Math.PI / petals)
-                    val px = (cx + cos(angle) * r * 1.6f).toFloat()
-                    val py = (cy + sin(angle) * r * 1.6f).toFloat()
-                    path.addCircle(px, py, r * 0.8f, Path.Direction.CW)
+
+            StencilType.DOLPHIN -> {
+                val s = minDim * 0.3f
+                path.moveTo(cx - s * 1.1f, cy + s * 0.6f) // tail
+                path.cubicTo(cx - s * 0.5f, cy - s * 0.5f, cx + s * 0.4f, cy - s * 0.8f, cx + s * 1.0f, cy - s * 0.2f) // arched back
+                path.lineTo(cx + s * 1.2f, cy - s * 0.1f) // snout
+                path.cubicTo(cx + s * 0.8f, cy + s * 0.2f, cx + s * 0.2f, cy + s * 0.3f, cx - s * 0.3f, cy + s * 0.2f) // belly
+                path.lineTo(cx - s * 1.1f, cy + s * 0.6f) // tail
+                // Dorsal fin
+                path.moveTo(cx, cy - s * 0.65f)
+                path.lineTo(cx - s * 0.2f, cy - s * 0.95f)
+                path.lineTo(cx + s * 0.2f, cy - s * 0.6f)
+            }
+
+            StencilType.PENGUIN -> {
+                val s = minDim * 0.25f
+                // Oval body
+                val bodyRect = RectF(cx - s * 0.7f, cy - s * 0.8f, cx + s * 0.7f, cy + s * 1.0f)
+                path.addOval(bodyRect, Path.Direction.CW)
+                // Wings
+                path.moveTo(cx - s * 0.7f, cy - s * 0.2f)
+                path.quadTo(cx - s * 1.2f, cy + s * 0.3f, cx - s * 0.6f, cy + s * 0.6f)
+                path.moveTo(cx + s * 0.7f, cy - s * 0.2f)
+                path.quadTo(cx + s * 1.2f, cy + s * 0.3f, cx + s * 0.6f, cy + s * 0.6f)
+                // Beak
+                path.moveTo(cx - s * 0.2f, cy - s * 0.3f)
+                path.lineTo(cx, cy - s * 0.1f)
+                path.lineTo(cx + s * 0.2f, cy - s * 0.3f)
+            }
+
+            StencilType.ROCKET -> {
+                val s = minDim * 0.28f
+                // Fuselage
+                path.moveTo(cx, cy - s * 1.2f)
+                path.cubicTo(cx + s * 0.6f, cy - s * 0.5f, cx + s * 0.6f, cy + s * 0.5f, cx + s * 0.4f, cy + s * 0.8f)
+                path.lineTo(cx - s * 0.4f, cy + s * 0.8f)
+                path.cubicTo(cx - s * 0.6f, cy + s * 0.5f, cx - s * 0.6f, cy - s * 0.5f, cx, cy - s * 1.2f)
+                // Fins
+                path.moveTo(cx - s * 0.4f, cy + s * 0.4f)
+                path.lineTo(cx - s * 0.85f, cy + s * 0.9f)
+                path.lineTo(cx - s * 0.4f, cy + s * 0.8f)
+                path.moveTo(cx + s * 0.4f, cy + s * 0.4f)
+                path.lineTo(cx + s * 0.85f, cy + s * 0.9f)
+                path.lineTo(cx + s * 0.4f, cy + s * 0.8f)
+                // Window
+                path.addCircle(cx, cy - s * 0.2f, s * 0.22f, Path.Direction.CW)
+            }
+
+            StencilType.MOON_STARS -> {
+                val r = minDim * 0.32f
+                // Crescent Moon
+                path.moveTo(cx, cy - r)
+                path.cubicTo(cx - r * 1.2f, cy - r * 0.7f, cx - r * 1.2f, cy + r * 0.7f, cx, cy + r)
+                path.cubicTo(cx - r * 0.4f, cy + r * 0.6f, cx - r * 0.4f, cy - r * 0.6f, cx, cy - r)
+                // Twinkle stars beside moon
+                drawMiniStar(path, cx + r * 0.5f, cy - r * 0.4f, r * 0.25f)
+                drawMiniStar(path, cx + r * 0.7f, cy + r * 0.3f, r * 0.18f)
+            }
+
+            StencilType.CROWN -> {
+                val s = minDim * 0.32f
+                path.moveTo(cx - s, cy + s * 0.5f)
+                path.lineTo(cx - s, cy - s * 0.2f)
+                path.lineTo(cx - s * 0.5f, cy + s * 0.1f)
+                path.lineTo(cx, cy - s * 0.6f)
+                path.lineTo(cx + s * 0.5f, cy + s * 0.1f)
+                path.lineTo(cx + s, cy - s * 0.2f)
+                path.lineTo(cx + s, cy + s * 0.5f)
+                path.close()
+                // Gem jewels
+                path.addCircle(cx - s, cy - s * 0.2f, s * 0.08f, Path.Direction.CW)
+                path.addCircle(cx, cy - s * 0.6f, s * 0.1f, Path.Direction.CW)
+                path.addCircle(cx + s, cy - s * 0.2f, s * 0.08f, Path.Direction.CW)
+            }
+
+            StencilType.DIAMOND -> {
+                val s = minDim * 0.3f
+                // Table top
+                path.moveTo(cx - s * 0.8f, cy - s * 0.4f)
+                path.lineTo(cx + s * 0.8f, cy - s * 0.4f)
+                path.lineTo(cx, cy + s * 0.9f)
+                path.close()
+                // Top facets
+                path.lineTo(cx - s * 0.4f, cy - s * 0.4f)
+                path.lineTo(cx - s * 0.6f, cy - s * 0.75f)
+                path.lineTo(cx + s * 0.6f, cy - s * 0.75f)
+                path.lineTo(cx + s * 0.4f, cy - s * 0.4f)
+            }
+
+            StencilType.MUSIC -> {
+                val s = minDim * 0.3f
+                // Treble / Eighth note pair
+                path.addCircle(cx - s * 0.4f, cy + s * 0.6f, s * 0.22f, Path.Direction.CW)
+                path.addCircle(cx + s * 0.5f, cy + s * 0.4f, s * 0.22f, Path.Direction.CW)
+                path.moveTo(cx - s * 0.2f, cy + s * 0.6f)
+                path.lineTo(cx - s * 0.2f, cy - s * 0.6f)
+                path.lineTo(cx + s * 0.7f, cy - s * 0.8f)
+                path.lineTo(cx + s * 0.7f, cy + s * 0.4f)
+            }
+
+            StencilType.LOTUS -> {
+                val s = minDim * 0.32f
+                // Center petal
+                path.moveTo(cx, cy + s * 0.5f)
+                path.cubicTo(cx - s * 0.4f, cy - s * 0.2f, cx - s * 0.3f, cy - s * 0.8f, cx, cy - s * 1.0f)
+                path.cubicTo(cx + s * 0.3f, cy - s * 0.8f, cx + s * 0.4f, cy - s * 0.2f, cx, cy + s * 0.5f)
+                // Left petal
+                path.moveTo(cx, cy + s * 0.5f)
+                path.cubicTo(cx - s * 0.7f, cy + s * 0.2f, cx - s * 0.9f, cy - s * 0.4f, cx - s * 0.6f, cy - s * 0.7f)
+                path.cubicTo(cx - s * 0.3f, cy - s * 0.3f, cx - s * 0.1f, cy + s * 0.2f, cx, cy + s * 0.5f)
+                // Right petal
+                path.moveTo(cx, cy + s * 0.5f)
+                path.cubicTo(cx + s * 0.7f, cy + s * 0.2f, cx + s * 0.9f, cy - s * 0.4f, cx + s * 0.6f, cy - s * 0.7f)
+                path.cubicTo(cx + s * 0.3f, cy - s * 0.3f, cx + s * 0.1f, cy + s * 0.2f, cx, cy + s * 0.5f)
+            }
+
+            StencilType.MANDALA_SUN -> {
+                val r = minDim * 0.15f
+                path.addCircle(cx, cy, r, Path.Direction.CW)
+                val rays = 12
+                for (i in 0 until rays) {
+                    val angle = i * (2 * Math.PI / rays)
+                    val x1 = (cx + cos(angle) * r).toFloat()
+                    val y1 = (cy + sin(angle) * r).toFloat()
+                    val x2 = (cx + cos(angle) * r * 2.2f).toFloat()
+                    val y2 = (cy + sin(angle) * r * 2.2f).toFloat()
+                    path.moveTo(x1, y1)
+                    path.lineTo(x2, y2)
+                    path.addCircle(x2, y2, minDim * 0.02f, Path.Direction.CW)
                 }
             }
-            StencilType.NONE -> {}
+
+            StencilType.SPIDER_WEB -> {
+                val maxR = minDim * 0.36f
+                val spokes = 8
+                // Radial lines
+                for (i in 0 until spokes) {
+                    val a = i * (2 * Math.PI / spokes)
+                    path.moveTo(cx, cy)
+                    path.lineTo((cx + cos(a) * maxR).toFloat(), (cy + sin(a) * maxR).toFloat())
+                }
+                // Concentric web rings
+                for (ring in 1..4) {
+                    val r = maxR * (ring / 4f)
+                    for (i in 0 until spokes) {
+                        val a1 = i * (2 * Math.PI / spokes)
+                        val a2 = (i + 1) * (2 * Math.PI / spokes)
+                        val p1x = (cx + cos(a1) * r).toFloat()
+                        val p1y = (cy + sin(a1) * r).toFloat()
+                        val p2x = (cx + cos(a2) * r).toFloat()
+                        val p2y = (cy + sin(a2) * r).toFloat()
+                        if (i == 0) path.moveTo(p1x, p1y)
+                        path.quadTo(
+                            (cx + cos((a1 + a2) / 2) * (r * 0.85f)).toFloat(),
+                            (cy + sin((a1 + a2) / 2) * (r * 0.85f)).toFloat(),
+                            p2x, p2y
+                        )
+                    }
+                }
+            }
         }
 
         canvas.drawPath(path, stencilPaint)
+    }
+
+    private fun drawMiniStar(path: Path, cx: Float, cy: Float, radius: Float) {
+        val spikes = 4
+        val rot = Math.PI / 2 * 3
+        val step = Math.PI / spikes
+        val innerRadius = radius * 0.3f
+        path.moveTo(cx, cy - radius)
+        for (i in 0 until spikes) {
+            val x1 = (cx + cos(rot + i * 2 * step) * radius).toFloat()
+            val y1 = (cy + sin(rot + i * 2 * step) * radius).toFloat()
+            path.lineTo(x1, y1)
+            val x2 = (cx + cos(rot + (i * 2 + 1) * step) * innerRadius).toFloat()
+            val y2 = (cy + sin(rot + (i * 2 + 1) * step) * innerRadius).toFloat()
+            path.lineTo(x2, y2)
+        }
+        path.close()
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -597,7 +918,9 @@ class DrawingView @JvmOverloads constructor(
     }
 
     fun exportBitmap(): Bitmap {
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val w = if (width > 0) width else 1080
+        val h = if (height > 0) height else 1920
+        val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
 
         // 1. Black background
@@ -606,11 +929,11 @@ class DrawingView @JvmOverloads constructor(
         // 2. Background image if present
         backgroundBitmap?.let { bmp ->
             val src = Rect(0, 0, bmp.width, bmp.height)
-            val dst = Rect(0, 0, width, height)
+            val dst = Rect(0, 0, w, h)
             canvas.drawBitmap(bmp, src, dst, null)
         }
 
-        // 3. Render all strokes
+        // 3. Render all strokes (without stencil guide lines so artwork is clean)
         for (stroke in strokes) {
             drawStroke(canvas, stroke)
         }

@@ -1,22 +1,32 @@
 package com.example.neondraw
 
+import android.Manifest
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.ContentValues
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
+import android.view.ViewGroup
+import android.view.Window
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -28,7 +38,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnRedo: ImageButton
     private lateinit var btnSymmetry: LinearLayout
     private lateinit var tvSymmetry: TextView
-    private lateinit var btnStencil: ImageButton
+    private lateinit var btnStencil: LinearLayout
+    private lateinit var tvStencilBadge: TextView
+    private lateinit var btnToggleStencilGuide: ImageButton
     private lateinit var btnPhoto: ImageButton
     private lateinit var btnShare: ImageButton
     private lateinit var btnSave: ImageButton
@@ -43,30 +55,45 @@ class MainActivity : AppCompatActivity() {
     private lateinit var brushStars: TextView
     private lateinit var brushBeads: TextView
     private lateinit var brushRibbon: TextView
+    private lateinit var brushFireworks: TextView
     private lateinit var brushChips: List<TextView>
 
     private lateinit var layoutColors: LinearLayout
 
-    // Vibrant Neon Palette (similar to iOS Neon Draw app)
+    // 12 Vibrant Neon Colors (Classic Glow Doodle palette)
     private val neonColors = listOf(
         Color.parseColor("#00FFFF"), // Neon Cyan
-        Color.parseColor("#FF007F"), // Neon Pink / Rose
-        Color.parseColor("#39FF14"), // Neon Green
-        Color.parseColor("#FFE600"), // Neon Yellow
-        Color.parseColor("#FF5F1F"), // Electric Orange
+        Color.parseColor("#FF007F"), // Neon Pink
+        Color.parseColor("#39FF14"), // Lime Green
+        Color.parseColor("#FFE600"), // Electric Yellow
+        Color.parseColor("#FF5F1F"), // Neon Orange
         Color.parseColor("#BC13FE"), // Electric Purple
-        Color.parseColor("#007FFF"), // Deep Azure Blue
-        Color.parseColor("#FF1493"), // Deep Pink
-        Color.parseColor("#00FF80"), // Mint Neon
+        Color.parseColor("#007FFF"), // Sky Azure
+        Color.parseColor("#FF1493"), // Deep Rose
+        Color.parseColor("#00FF80"), // Mint Glow
+        Color.parseColor("#FF3131"), // Neon Red
+        Color.parseColor("#9D00FF"), // Neon Violet
         Color.parseColor("#FFFFFF")  // Pure Glowing White
     )
 
     private var selectedColorView: View? = null
 
+    // Photo picker
     private val pickPhotoLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { loadBackgroundFromUri(it) }
+    }
+
+    // Permission request for Android 9 and below
+    private val requestWritePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            executeSaveArtwork()
+        } else {
+            Toast.makeText(this, "Cần cấp quyền ghi bộ nhớ để lưu ảnh vào Thư viện!", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,6 +115,8 @@ class MainActivity : AppCompatActivity() {
         btnSymmetry = findViewById(R.id.btnSymmetry)
         tvSymmetry = findViewById(R.id.tvSymmetry)
         btnStencil = findViewById(R.id.btnStencil)
+        tvStencilBadge = findViewById(R.id.tvStencilBadge)
+        btnToggleStencilGuide = findViewById(R.id.btnToggleStencilGuide)
         btnPhoto = findViewById(R.id.btnPhoto)
         btnShare = findViewById(R.id.btnShare)
         btnSave = findViewById(R.id.btnSave)
@@ -102,7 +131,8 @@ class MainActivity : AppCompatActivity() {
         brushStars = findViewById(R.id.brushStars)
         brushBeads = findViewById(R.id.brushBeads)
         brushRibbon = findViewById(R.id.brushRibbon)
-        brushChips = listOf(brushNeon, brushRainbow, brushStars, brushBeads, brushRibbon)
+        brushFireworks = findViewById(R.id.brushFireworks)
+        brushChips = listOf(brushNeon, brushRainbow, brushStars, brushBeads, brushRibbon, brushFireworks)
 
         layoutColors = findViewById(R.id.layoutColors)
     }
@@ -127,7 +157,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Stencil / Pattern Templates
-        btnStencil.setOnClickListener { showStencilDialog() }
+        btnStencil.setOnClickListener { showTemplateGalleryDialog() }
+
+        // Toggle Stencil Guide Visibility
+        btnToggleStencilGuide.setOnClickListener {
+            val isVisible = drawingView.toggleStencilGuideVisibility()
+            btnToggleStencilGuide.setImageResource(
+                if (isVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off
+            )
+            Toast.makeText(
+                this,
+                if (isVisible) "Đã hiện nét khung mẫu vẽ" else "Đã ẩn nét khung mẫu vẽ",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
 
         // Import Photo Background
         btnPhoto.setOnClickListener {
@@ -148,7 +191,7 @@ class MainActivity : AppCompatActivity() {
         btnShare.setOnClickListener { shareArtwork() }
 
         // Save Artwork to Gallery
-        btnSave.setOnClickListener { saveArtworkToGallery() }
+        btnSave.setOnClickListener { checkAndSaveArtwork() }
 
         // Clear Canvas
         btnClear.setOnClickListener {
@@ -168,6 +211,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.brushStars -> Pair(BrushType.STARS, brushStars)
                 R.id.brushBeads -> Pair(BrushType.BEADS, brushBeads)
                 R.id.brushRibbon -> Pair(BrushType.RIBBON, brushRibbon)
+                R.id.brushFireworks -> Pair(BrushType.FIREWORKS, brushFireworks)
                 else -> Pair(BrushType.NEON, brushNeon)
             }
             drawingView.setBrushType(type)
@@ -225,9 +269,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupColorPalette() {
         layoutColors.removeAllViews()
 
-        // 1. Rainbow Mode Button (dynamic rainbow brush for any stroke)
+        // 1. Rainbow Mode Button (dynamic rainbow colors along any stroke)
         val btnRainbowColor = ImageButton(this).apply {
-            layoutParams = LinearLayout.LayoutParams(90, 90).apply {
+            layoutParams = LinearLayout.LayoutParams(88, 88).apply {
                 marginEnd = 16
             }
             setImageResource(R.drawable.ic_rainbow)
@@ -296,34 +340,66 @@ class MainActivity : AppCompatActivity() {
         btnRedo.alpha = 0.35f
     }
 
-    private fun showStencilDialog() {
-        val stencilNames = arrayOf(
-            "Tự do (Không mẫu)",
-            "❤️ Trái tim (Heart)",
-            "⭐ Ngôi sao (Star)",
-            "🦋 Con bướm (Butterfly)",
-            "🐱 Mèo con (Cat)",
-            "👑 Vương miện (Crown)",
-            "🌸 Bông hoa (Flower)"
-        )
-        val stencils = arrayOf(
-            StencilType.NONE,
-            StencilType.HEART,
-            StencilType.STAR,
-            StencilType.BUTTERFLY,
-            StencilType.CAT,
-            StencilType.CROWN,
-            StencilType.FLOWER
+    private fun showTemplateGalleryDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_templates)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.92).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
         )
 
-        AlertDialog.Builder(this)
-            .setTitle("Chọn mẫu vẽ neon")
-            .setItems(stencilNames) { _, which ->
-                drawingView.setStencil(stencils[which])
-                Toast.makeText(this, "Đã chọn: ${stencilNames[which]}", Toast.LENGTH_SHORT).show()
+        val btnClose = dialog.findViewById<ImageButton>(R.id.btnDialogClose)
+        val btnRemove = dialog.findViewById<Button>(R.id.btnRemoveStencil)
+        val rvTemplates = dialog.findViewById<RecyclerView>(R.id.rvTemplates)
+
+        val chipAll = dialog.findViewById<TextView>(R.id.chipCatAll)
+        val chipCute = dialog.findViewById<TextView>(R.id.chipCatCute)
+        val chipAnimal = dialog.findViewById<TextView>(R.id.chipCatAnimal)
+        val chipMagic = dialog.findViewById<TextView>(R.id.chipCatMagic)
+        val chipMandala = dialog.findViewById<TextView>(R.id.chipCatMandala)
+        val categoryChips = listOf(chipAll, chipCute, chipAnimal, chipMagic, chipMandala)
+
+        val allTemplates = StencilType.values().filter { it != StencilType.NONE }
+
+        rvTemplates.layoutManager = GridLayoutManager(this, 3)
+        val adapter = TemplateAdapter(allTemplates, drawingView.getStencil()) { selected ->
+            drawingView.setStencil(selected)
+            tvStencilBadge.text = selected.title
+            btnToggleStencilGuide.visibility = View.VISIBLE
+            btnToggleStencilGuide.setImageResource(R.drawable.ic_visibility)
+            Toast.makeText(this, "Đã chọn: ${selected.emoji} ${selected.title}! Hãy vẽ theo khung nhé ✨", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+        rvTemplates.adapter = adapter
+
+        fun filterCategory(category: String, activeChip: TextView) {
+            categoryChips.forEach { chip ->
+                val isSelected = (chip == activeChip)
+                chip.setTextColor(if (isSelected) Color.parseColor("#00FFFF") else Color.WHITE)
+                chip.setBackgroundResource(R.drawable.bg_glass_pill)
             }
-            .setNegativeButton("Đóng", null)
-            .show()
+            val filtered = if (category == "Tất cả") allTemplates else allTemplates.filter { it.category == category }
+            adapter.updateList(filtered, drawingView.getStencil())
+        }
+
+        chipAll.setOnClickListener { filterCategory("Tất cả", chipAll) }
+        chipCute.setOnClickListener { filterCategory("Dễ thương", chipCute) }
+        chipAnimal.setOnClickListener { filterCategory("Động vật", chipAnimal) }
+        chipMagic.setOnClickListener { filterCategory("Vũ trụ", chipMagic) }
+        chipMandala.setOnClickListener { filterCategory("Mandala", chipMandala) }
+
+        btnRemove.setOnClickListener {
+            drawingView.setStencil(StencilType.NONE)
+            tvStencilBadge.text = "Mẫu vẽ"
+            btnToggleStencilGuide.visibility = View.GONE
+            Toast.makeText(this, "Đã chuyển sang chế độ Vẽ tự do", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun loadBackgroundFromUri(uri: Uri) {
@@ -340,47 +416,118 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveArtworkToGallery() {
+    private fun checkAndSaveArtwork() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestWritePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                return
+            }
+        }
+        executeSaveArtwork()
+    }
+
+    private fun executeSaveArtwork() {
         try {
             val bitmap = drawingView.exportBitmap()
             val filename = "NeonDraw_${System.currentTimeMillis()}.png"
-            var outputStream: OutputStream? = null
+            var savedUri: Uri? = null
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
                     put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/NeonDraw")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/NeonDraw/")
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
-                val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-                imageUri?.let { outputStream = contentResolver.openOutputStream(it) }
+
+                val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    contentResolver.openOutputStream(uri)?.use { out: OutputStream ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                        out.flush()
+                    }
+                    contentValues.clear()
+                    contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    contentResolver.update(uri, contentValues, null, null)
+                    savedUri = uri
+                }
             } else {
-                val imagesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString() + "/NeonDraw"
-                val file = File(imagesDir)
-                if (!file.exists()) file.mkdirs()
-                val imageFile = File(imagesDir, filename)
-                outputStream = FileOutputStream(imageFile)
+                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                val neonDir = File(picturesDir, "NeonDraw")
+                if (!neonDir.exists()) neonDir.mkdirs()
+
+                val file = File(neonDir, filename)
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    out.flush()
+                }
+
+                MediaScannerConnection.scanFile(this, arrayOf(file.absolutePath), arrayOf("image/png")) { _, scanUri ->
+                    savedUri = scanUri
+                }
+                savedUri = Uri.fromFile(file)
             }
 
-            outputStream?.use {
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
-                Toast.makeText(this, "🎉 Đã lưu tranh vào Thư viện ảnh!", Toast.LENGTH_LONG).show()
-            } ?: run {
-                Toast.makeText(this, "Lỗi khi lưu ảnh!", Toast.LENGTH_SHORT).show()
+            if (savedUri != null) {
+                showSaveSuccessDialog(bitmap, savedUri!!)
+            } else {
+                Toast.makeText(this, "🎉 Đã lưu thành công vào Bộ sưu tập (Pictures/NeonDraw)", Toast.LENGTH_LONG).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Lỗi lưu: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Lỗi khi lưu ảnh: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showSaveSuccessDialog(bitmap: Bitmap, imageUri: Uri) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_save_success)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.88).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        val imgPreview = dialog.findViewById<ImageView>(R.id.imgSavePreview)
+        val btnOpen = dialog.findViewById<Button>(R.id.btnOpenGallery)
+        val btnShareSaved = dialog.findViewById<Button>(R.id.btnShareSaved)
+        val btnContinue = dialog.findViewById<Button>(R.id.btnContinueDrawing)
+
+        imgPreview.setImageBitmap(bitmap)
+
+        btnOpen.setOnClickListener {
+            try {
+                val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(imageUri, "image/png")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(viewIntent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Vui lòng mở ứng dụng Bộ sưu tập để xem ảnh!", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+
+        btnShareSaved.setOnClickListener {
+            dialog.dismiss()
+            shareArtwork()
+        }
+
+        btnContinue.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun shareArtwork() {
         try {
             val bitmap = drawingView.exportBitmap()
             val cachePath = File(cacheDir, "images")
-            cachePath.mkdirs()
+            if (!cachePath.exists()) cachePath.mkdirs()
             val file = File(cachePath, "neon_artwork_${System.currentTimeMillis()}.png")
             FileOutputStream(file).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                out.flush()
             }
 
             val contentUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
