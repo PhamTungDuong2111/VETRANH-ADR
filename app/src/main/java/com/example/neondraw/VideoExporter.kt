@@ -30,9 +30,6 @@ object VideoExporter {
         durationSeconds: Int = 5,
         onProgress: (Int) -> Unit
     ): Uri? = withContext(Dispatchers.IO) {
-        val totalPoints = drawingView.getTotalDrawingPoints()
-        if (totalPoints == 0) return@withContext null
-
         val width = 720
         val height = 1280
         val totalFrames = durationSeconds * FRAME_RATE
@@ -269,3 +266,4 @@ object VideoExporter {
         }
     }
 }
+

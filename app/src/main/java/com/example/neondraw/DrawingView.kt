@@ -636,7 +636,37 @@ class DrawingView @JvmOverloads constructor(
 
         // 3. Render strokes up to progress
         val totalPts = getTotalDrawingPoints()
-        if (totalPts == 0) return bmp
+        if (totalPts == 0) {
+            // Render stencil or demo shape animated step-by-step
+            val stencilToDraw = if (currentStencil != StencilType.NONE) currentStencil else StencilType.HEART
+            val padW = w * 0.12f
+            val padH = h * 0.18f
+            val bounds = RectF(padW, padH, w - padW, h - padH)
+            val fullPath = TemplateShapes.createPath(stencilToDraw, bounds)
+            val pm = PathMeasure(fullPath, false)
+            val partialPath = Path()
+            val totalLength = pm.length
+            pm.getSegment(0f, totalLength * progress.coerceIn(0.01f, 1f), partialPath, true)
+
+            val pGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 14f
+                strokeCap = Paint.Cap.ROUND
+                strokeJoin = Paint.Join.ROUND
+                color = Color.parseColor("#9900FFFF")
+                maskFilter = BlurMaskFilter(16f, BlurMaskFilter.Blur.NORMAL)
+            }
+            val pCore = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 5f
+                strokeCap = Paint.Cap.ROUND
+                strokeJoin = Paint.Join.ROUND
+                color = Color.WHITE
+            }
+            canvas.drawPath(partialPath, pGlow)
+            canvas.drawPath(partialPath, pCore)
+            return bmp
+        }
 
         val targetPts = (totalPts * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
         var pointsAccumulated = 0
@@ -659,5 +689,16 @@ class DrawingView @JvmOverloads constructor(
         }
 
         return bmp
+    }
+
+    fun getTotalSteps(): Int {
+        return if (strokes.isNotEmpty()) strokes.size else 10
+    }
+
+    fun renderStepToBitmap(step: Int, targetWidth: Int = width, targetHeight: Int = height): Bitmap {
+        val totalSteps = getTotalSteps()
+        val safeStep = step.coerceIn(0, totalSteps)
+        val progress = if (totalSteps > 0) safeStep.toFloat() / totalSteps else 1f
+        return renderProgressToBitmap(progress, targetWidth, targetHeight)
     }
 }

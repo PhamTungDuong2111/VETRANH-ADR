@@ -64,6 +64,11 @@
     <string name="music_off">Đã tắt nhạc</string>
     <string name="music_on">Đang phát nhạc</string>
     <string name="video_replay_title">🎬 Video tái hiện nét vẽ</string>
+    <string name="video_step_by_step">🎬 Video từng bước nét vẽ</string>
+    <string name="step_counter">Nét vẽ: Bước %1$d / %2$d</string>
+    <string name="quick_mute">Tắt nhạc</string>
+    <string name="quick_unmute">Bật nhạc</string>
+    <string name="change_music">Đổi nhạc</string>
     <string name="export_mp4_video">🎥 Xuất video (MP4)</string>
     <string name="exporting_video">Đang kết xuất video MP4… %1$d%%</string>
     <string name="video_export_success">🎉 Đã xuất video vào Thư viện (Movies/NeonDraw)!</string>

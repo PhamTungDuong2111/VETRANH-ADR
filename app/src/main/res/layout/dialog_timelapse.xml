@@ -18,7 +18,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_video"
-            app:tint="#FF007F" />
+            app:tint="#FF6600" />
 
         <TextView
             android:id="@+id/tvTimelapseTitle"
@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="@string/video_replay_title"
+            android:text="@string/video_step_by_step"
             android:textColor="#FFFFFF"
             android:textSize="17sp"
             android:textStyle="bold" />
@@ -45,7 +45,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="320dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
         android:background="#050505">
 
         <ImageView
@@ -68,7 +68,7 @@
             app:tint="#39FF14" />
     </FrameLayout>
 
-    <!-- Progress Scrubber -->
+    <!-- Step Indicator & Percentage -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -76,29 +76,39 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <SeekBar
-            android:id="@+id/sbTimelapseProgress"
+        <TextView
+            android:id="@+id/tvStepIndicator"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:max="1000"
-            android:progress="0"
-            android:progressBackgroundTint="#44FFFFFF"
-            android:progressTint="#FF007F"
-            android:thumbTint="#FF007F" />
+            android:text="@string/step_counter"
+            android:textColor="#00FFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvTimelapseProgressText"
-            android:layout_width="45dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="end"
             android:text="0%"
-            android:textColor="#FF007F"
-            android:textSize="12sp"
+            android:textColor="#FF9933"
+            android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Controls Row: Play/Pause, Replay, Speed -->
+    <!-- Progress Scrubber -->
+    <SeekBar
+        android:id="@+id/sbTimelapseProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:max="1000"
+        android:progress="0"
+        android:progressBackgroundTint="#44FFFFFF"
+        android:progressTint="#FF6600"
+        android:thumbTint="#FF6600" />
+
+    <!-- Step Controls Row: [⏮️ Bước trước] [▶️/⏸️ Phát] [⏭️ Bước sau] [🔄 Tua lại] | Speed -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -106,20 +116,44 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <!-- Previous Step -->
+        <ImageButton
+            android:id="@+id/btnPrevStep"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_glass_circle"
+            android:contentDescription="Previous Step"
+            android:src="@drawable/ic_skip_previous"
+            app:tint="#00FFFF" />
+
+        <!-- Play / Pause -->
         <ImageButton
             android:id="@+id/btnPlayPause"
             android:layout_width="44dp"
             android:layout_height="44dp"
+            android:layout_marginStart="6dp"
             android:background="@drawable/bg_glass_circle"
             android:contentDescription="Play/Pause"
             android:src="@drawable/ic_play"
+            app:tint="#39FF14" />
+
+        <!-- Next Step -->
+        <ImageButton
+            android:id="@+id/btnNextStep"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_glass_circle"
+            android:contentDescription="Next Step"
+            android:src="@drawable/ic_skip_next"
             app:tint="#00FFFF" />
 
+        <!-- Replay -->
         <ImageButton
             android:id="@+id/btnReplay"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Replay"
             android:src="@drawable/ic_restart"
@@ -133,7 +167,7 @@
         <!-- Speed selector -->
         <TextView
             android:id="@+id/btnSpeed1x"
-            android:layout_width="38dp"
+            android:layout_width="36dp"
             android:layout_height="32dp"
             android:background="@drawable/bg_glass_pill"
             android:gravity="center"
@@ -144,9 +178,9 @@
 
         <TextView
             android:id="@+id/btnSpeed2x"
-            android:layout_width="38dp"
+            android:layout_width="36dp"
             android:layout_height="32dp"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
             android:background="@drawable/bg_glass_pill"
             android:gravity="center"
             android:text="2x"
@@ -155,9 +189,9 @@
 
         <TextView
             android:id="@+id/btnSpeed4x"
-            android:layout_width="38dp"
+            android:layout_width="36dp"
             android:layout_height="32dp"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
             android:background="@drawable/bg_glass_pill"
             android:gravity="center"
             android:text="4x"
@@ -192,7 +226,7 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="12dp"
-        android:background="@drawable/bg_glass_pill"
+        android:background="@drawable/bg_neon_card"
         android:text="@string/export_mp4_video"
         android:textColor="#39FF14"
         android:textSize="14sp"

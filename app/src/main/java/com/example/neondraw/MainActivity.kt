@@ -47,8 +47,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStencilBadge: TextView
     private lateinit var btnToggleStencilGuide: ImageButton
     private lateinit var btnPhoto: ImageButton
-    private lateinit var btnMusic: ImageButton
-    private lateinit var btnVideo: ImageButton
+    private lateinit var btnMusicPill: LinearLayout
+    private lateinit var tvMusicTrackName: TextView
+    private lateinit var ivMusicIcon: ImageView
+    private lateinit var btnQuickMute: ImageView
+    private lateinit var btnVideo: View
     private lateinit var btnShare: ImageButton
     private lateinit var btnSave: ImageButton
     private lateinit var btnClear: ImageButton
@@ -152,7 +155,10 @@ class MainActivity : AppCompatActivity() {
         tvStencilBadge = findViewById(R.id.tvStencilBadge)
         btnToggleStencilGuide = findViewById(R.id.btnToggleStencilGuide)
         btnPhoto = findViewById(R.id.btnPhoto)
-        btnMusic = findViewById(R.id.btnMusic)
+        btnMusicPill = findViewById(R.id.btnMusicPill)
+        tvMusicTrackName = findViewById(R.id.tvMusicTrackName)
+        ivMusicIcon = findViewById(R.id.ivMusicIcon)
+        btnQuickMute = findViewById(R.id.btnQuickMute)
         btnVideo = findViewById(R.id.btnVideo)
         btnShare = findViewById(R.id.btnShare)
         btnSave = findViewById(R.id.btnSave)
@@ -254,10 +260,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Music Selector
-        btnMusic.setOnClickListener { showMusicDialog() }
+        // Music Controller (Pill + Quick Mute)
+        MusicManager.onStateChanged = { track, isMuted ->
+            updateMusicBarUI(track, isMuted)
+        }
+        updateMusicBarUI(MusicManager.getCurrentTrack(), MusicManager.isMuted())
 
-        // Video Timelapse Replay & MP4 Export
+        btnMusicPill.setOnClickListener { showMusicDialog() }
+        btnQuickMute.setOnClickListener {
+            val isMuted = MusicManager.toggleMute(this)
+            val msg = if (isMuted) getString(R.string.music_off) else getString(R.string.music_on)
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+
+        // Video Step-by-Step Drawing
         btnVideo.setOnClickListener { showTimelapseDialog() }
 
         // Share Artwork
@@ -610,6 +626,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateMusicBarUI(track: MusicTrack, isMuted: Boolean) {
+        if (isMuted) {
+            tvMusicTrackName.text = getString(R.string.music_off)
+            tvMusicTrackName.setTextColor(Color.parseColor("#FF5F1F"))
+            ivMusicIcon.setColorFilter(Color.parseColor("#FF5F1F"))
+            btnQuickMute.setImageResource(R.drawable.ic_volume_off)
+            btnQuickMute.setColorFilter(Color.parseColor("#FF5F1F"))
+        } else {
+            tvMusicTrackName.text = "${track.title} (${track.fileName})"
+            tvMusicTrackName.setTextColor(Color.parseColor("#00FFFF"))
+            ivMusicIcon.setColorFilter(Color.parseColor("#00FFFF"))
+            btnQuickMute.setImageResource(R.drawable.ic_volume_up)
+            btnQuickMute.setColorFilter(Color.parseColor("#39FF14"))
+        }
+    }
+
     private fun showMusicDialog() {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -643,7 +675,7 @@ class MainActivity : AppCompatActivity() {
                     orientation = LinearLayout.HORIZONTAL
                     layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        (48 * resources.displayMetrics.density).toInt()
+                        (50 * resources.displayMetrics.density).toInt()
                     ).apply {
                         setMargins(0, (4 * resources.displayMetrics.density).toInt(), 0, (4 * resources.displayMetrics.density).toInt())
                     }
@@ -661,10 +693,10 @@ class MainActivity : AppCompatActivity() {
 
                     val tvIcon = TextView(this@MainActivity).apply {
                         text = if (isSelected) "▶️" else "🎵"
-                        textSize = 14f
+                        textSize = 15f
                     }
                     val tvName = TextView(this@MainActivity).apply {
-                        text = track.name
+                        text = "${track.title} (${track.fileName})"
                         textSize = 14f
                         setTextColor(if (isSelected) Color.parseColor("#00FFFF") else Color.WHITE)
                         setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
@@ -673,8 +705,16 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
+                    val tvStatus = TextView(this@MainActivity).apply {
+                        text = if (isSelected) getString(R.string.music_on) else ""
+                        textSize = 11f
+                        setTextColor(Color.parseColor("#39FF14"))
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    }
+
                     addView(tvIcon)
                     addView(tvName)
+                    addView(tvStatus)
 
                     setOnClickListener {
                         MusicManager.playTrack(this@MainActivity, track.id)
@@ -709,10 +749,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showTimelapseDialog() {
-        if (!drawingView.hasDrawing()) {
-            Toast.makeText(this, getString(R.string.toast_no_drawing), Toast.LENGTH_SHORT).show()
-            return
-        }
+        val totalSteps = drawingView.getTotalSteps().coerceAtLeast(1)
 
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -727,7 +764,10 @@ class MainActivity : AppCompatActivity() {
         val ivCenterPlay = dialog.findViewById<ImageView>(R.id.ivCenterPlay)
         val sbProgress = dialog.findViewById<SeekBar>(R.id.sbTimelapseProgress)
         val tvProgressText = dialog.findViewById<TextView>(R.id.tvTimelapseProgressText)
+        val tvStepIndicator = dialog.findViewById<TextView>(R.id.tvStepIndicator)
+        val btnPrevStep = dialog.findViewById<ImageButton>(R.id.btnPrevStep)
         val btnPlayPause = dialog.findViewById<ImageButton>(R.id.btnPlayPause)
+        val btnNextStep = dialog.findViewById<ImageButton>(R.id.btnNextStep)
         val btnReplay = dialog.findViewById<ImageButton>(R.id.btnReplay)
         val btnSpeed1x = dialog.findViewById<TextView>(R.id.btnSpeed1x)
         val btnSpeed2x = dialog.findViewById<TextView>(R.id.btnSpeed2x)
@@ -741,6 +781,18 @@ class MainActivity : AppCompatActivity() {
         var currentProgress = 0.05f
         var isPlaying = true
         var currentBitmap: Bitmap? = null
+
+        fun updateStepUI() {
+            val currentStep = (currentProgress * totalSteps).toInt().coerceIn(1, totalSteps)
+            tvStepIndicator.text = getString(R.string.step_counter, currentStep, totalSteps)
+            tvProgressText.text = "${(currentProgress * 100).toInt()}%"
+            sbProgress.progress = (currentProgress * 1000).toInt()
+
+            val previewBmp = drawingView.renderProgressToBitmap(currentProgress, 540, 960)
+            currentBitmap?.recycle()
+            currentBitmap = previewBmp
+            ivPreview.setImageBitmap(previewBmp)
+        }
 
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         val updateFrameRunnable = object : Runnable {
@@ -756,13 +808,7 @@ class MainActivity : AppCompatActivity() {
                     ivCenterPlay.visibility = View.VISIBLE
                 }
 
-                val previewBmp = drawingView.renderProgressToBitmap(currentProgress, 540, 960)
-                currentBitmap?.recycle()
-                currentBitmap = previewBmp
-                ivPreview.setImageBitmap(previewBmp)
-
-                sbProgress.progress = (currentProgress * 1000).toInt()
-                tvProgressText.text = "${(currentProgress * 100).toInt()}%"
+                updateStepUI()
 
                 if (isPlaying) {
                     handler.postDelayed(this, 33)
@@ -780,6 +826,32 @@ class MainActivity : AppCompatActivity() {
         btnSpeed1x.setOnClickListener { updateSpeedButtons(1.0f) }
         btnSpeed2x.setOnClickListener { updateSpeedButtons(2.0f) }
         btnSpeed4x.setOnClickListener { updateSpeedButtons(4.0f) }
+
+        // Previous step
+        btnPrevStep.setOnClickListener {
+            isPlaying = false
+            handler.removeCallbacks(updateFrameRunnable)
+            btnPlayPause.setImageResource(R.drawable.ic_play)
+            ivCenterPlay.visibility = View.VISIBLE
+
+            val stepDelta = 1f / totalSteps
+            currentProgress = (currentProgress - stepDelta).coerceAtLeast(0.02f)
+            updateStepUI()
+        }
+
+        // Next step
+        btnNextStep.setOnClickListener {
+            isPlaying = false
+            handler.removeCallbacks(updateFrameRunnable)
+            btnPlayPause.setImageResource(R.drawable.ic_play)
+
+            val stepDelta = 1f / totalSteps
+            currentProgress = (currentProgress + stepDelta).coerceAtMost(1f)
+            if (currentProgress >= 1f) {
+                ivCenterPlay.visibility = View.VISIBLE
+            }
+            updateStepUI()
+        }
 
         btnPlayPause.setOnClickListener {
             if (isPlaying) {
@@ -815,11 +887,7 @@ class MainActivity : AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     currentProgress = progress / 1000f
-                    tvProgressText.text = "${(currentProgress * 100).toInt()}%"
-                    val previewBmp = drawingView.renderProgressToBitmap(currentProgress, 540, 960)
-                    currentBitmap?.recycle()
-                    currentBitmap = previewBmp
-                    ivPreview.setImageBitmap(previewBmp)
+                    updateStepUI()
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {

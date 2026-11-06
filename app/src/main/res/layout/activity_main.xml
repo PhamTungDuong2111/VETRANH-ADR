@@ -12,19 +12,20 @@
         android:layout_height="match_parent" />
 
     <!-- 2. Top Header Toolbar (Glassmorphic dark neon rounded bar) -->
+    <!-- 2. Top Header Toolbar (Row 1) -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginTop="12dp"
         android:background="@drawable/bg_glass_pill"
         android:elevation="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="6dp">
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="4dp">
 
         <ImageButton
             android:id="@+id/btnUndo"
@@ -44,78 +45,33 @@
             android:src="@drawable/ic_redo"
             app:tint="#FFFFFF" />
 
-        <!-- Symmetry Mode Toggle -->
-        <LinearLayout
-            android:id="@+id/btnSymmetry"
-            android:layout_width="wrap_content"
+        <ImageButton
+            android:id="@+id/btnClear"
+            android:layout_width="38dp"
             android:layout_height="38dp"
-            android:layout_marginStart="4dp"
-            android:background="@drawable/bg_glass_pill"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="8dp">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_symmetry"
-                app:tint="#00FFFF" />
-
-            <TextView
-                android:id="@+id/tvSymmetry"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="1x"
-                android:textColor="#00FFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/clear"
+            android:src="@drawable/ic_clear"
+            app:tint="#FF3131" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
             android:layout_weight="1" />
 
-        <!-- Language Switcher Button -->
-        <LinearLayout
-            android:id="@+id/btnLanguage"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:layout_marginEnd="4dp"
-            android:background="@drawable/bg_glass_pill"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="7dp">
-
-            <TextView
-                android:id="@+id/tvLangFlag"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🇬🇧"
-                android:textSize="13sp" />
-
-            <TextView
-                android:id="@+id/tvLangCode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="3dp"
-                android:text="EN"
-                android:textColor="#FFFFFF"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
         <!-- Stencil / Pattern Templates Button with badge -->
         <LinearLayout
             android:id="@+id/btnStencil"
             android:layout_width="wrap_content"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="4dp"
             android:background="@drawable/bg_glass_pill"
             android:gravity="center_vertical"
             android:paddingHorizontal="8dp">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:src="@drawable/ic_stencil"
                 app:tint="#FFE600" />
 
@@ -130,56 +86,33 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Toggle Stencil Visibility Button -->
-        <ImageButton
-            android:id="@+id/btnToggleStencilGuide"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Toggle Stencil"
-            android:src="@drawable/ic_visibility"
-            android:visibility="gone"
-            app:tint="#00FFFF" />
+        <!-- Language Switcher Button -->
+        <LinearLayout
+            android:id="@+id/btnLanguage"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/bg_glass_pill"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="7dp">
 
-        <!-- Add Photo Background -->
-        <ImageButton
-            android:id="@+id/btnPhoto"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/photo_bg"
-            android:src="@drawable/ic_image"
-            app:tint="#FFFFFF" />
+            <TextView
+                android:id="@+id/tvLangFlag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🇬🇧"
+                android:textSize="12sp" />
 
-        <!-- Music Selector Button -->
-        <ImageButton
-            android:id="@+id/btnMusic"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/music"
-            android:src="@drawable/ic_music"
-            app:tint="#BC13FE" />
-
-        <!-- Video Stroke Replay Button -->
-        <ImageButton
-            android:id="@+id/btnVideo"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/video_replay_title"
-            android:src="@drawable/ic_video"
-            app:tint="#FF6600" />
-
-        <!-- Share Artwork -->
-        <ImageButton
-            android:id="@+id/btnShare"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/share"
-            android:src="@drawable/ic_share"
-            app:tint="#FF007F" />
+            <TextView
+                android:id="@+id/tvLangCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:text="EN"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- Save Artwork to Gallery -->
         <ImageButton
@@ -192,6 +125,154 @@
             app:tint="#39FF14" />
 
     </LinearLayout>
+
+    <!-- 3. Secondary Action Bar (Row 2): Video Replay, Music Pill, Symmetry, Photo, Share -->
+    <HorizontalScrollView
+        android:id="@+id/secondaryBarScroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginTop="58dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- VIDEO TỪNG BƯỚC NÉT VẼ BUTTON (Big, Glowing Neon Orange) -->
+            <LinearLayout
+                android:id="@+id/btnVideo"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_neon_card"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="10dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_video"
+                    app:tint="#FF6600" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/video_step_by_step"
+                    android:textColor="#FF9933"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- MUSIC PILL: CHỌN / ĐỔI / TẮT NHẠC (Glowing Cyan) -->
+            <LinearLayout
+                android:id="@+id/btnMusicPill"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="10dp">
+
+                <ImageView
+                    android:id="@+id/ivMusicIcon"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_music"
+                    app:tint="#00FFFF" />
+
+                <TextView
+                    android:id="@+id/tvMusicTrackName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:text="Bài 1 (1.mp3)"
+                    android:textColor="#00FFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="16dp"
+                    android:layout_marginHorizontal="6dp"
+                    android:background="#44FFFFFF" />
+
+                <!-- Quick Mute / Unmute Button -->
+                <ImageView
+                    android:id="@+id/btnQuickMute"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="Mute/Unmute"
+                    android:src="@drawable/ic_volume_up"
+                    app:tint="#39FF14" />
+            </LinearLayout>
+
+            <!-- Symmetry Mode Toggle -->
+            <LinearLayout
+                android:id="@+id/btnSymmetry"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_symmetry"
+                    app:tint="#00FFFF" />
+
+                <TextView
+                    android:id="@+id/tvSymmetry"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="1x"
+                    android:textColor="#00FFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Toggle Stencil Visibility Button -->
+            <ImageButton
+                android:id="@+id/btnToggleStencilGuide"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Toggle Stencil"
+                android:src="@drawable/ic_visibility"
+                android:visibility="gone"
+                app:tint="#00FFFF" />
+
+            <!-- Add Photo Background -->
+            <ImageButton
+                android:id="@+id/btnPhoto"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_glass_pill"
+                android:contentDescription="@string/photo_bg"
+                android:src="@drawable/ic_image"
+                app:tint="#FFFFFF" />
+
+            <!-- Share Artwork -->
+            <ImageButton
+                android:id="@+id/btnShare"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_glass_pill"
+                android:contentDescription="@string/share"
+                android:src="@drawable/ic_share"
+                app:tint="#FF007F" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
 
     <!-- 3. Bottom Tool & Palette Bar -->
     <LinearLayout
