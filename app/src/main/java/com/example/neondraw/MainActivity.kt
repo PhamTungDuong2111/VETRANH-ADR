@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -113,6 +114,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        volumeControlStream = AudioManager.STREAM_MUSIC
         LocaleHelper.init(this)
         setContentView(R.layout.activity_main)
 
@@ -658,10 +660,11 @@ class MainActivity : AppCompatActivity() {
         val container = dialog.findViewById<LinearLayout>(R.id.layoutTracksContainer)
         val btnClose = dialog.findViewById<Button>(R.id.btnCloseMusic)
 
-        switchMusic.isChecked = !MusicManager.isMuted()
-        val curVol = (MusicManager.getVolume() * 100).toInt()
+        val maxVol = MusicManager.getSystemMaxMediaVolume(this).coerceAtLeast(1)
+        val curVol = MusicManager.getSystemMediaVolume(this)
+        sbVolume.max = maxVol
         sbVolume.progress = curVol
-        tvVolumePercent.text = "$curVol%"
+        tvVolumePercent.text = "${(curVol * 100 / maxVol)}%"
 
         fun renderTracks() {
             container.removeAllViews()
@@ -736,13 +739,33 @@ class MainActivity : AppCompatActivity() {
         sbVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    tvVolumePercent.text = "$progress%"
-                    MusicManager.setVolume(this@MainActivity, progress / 100f)
+                    val pct = (progress * 100 / maxVol)
+                    tvVolumePercent.text = "$pct%"
+                    MusicManager.setSystemMediaVolume(this@MainActivity, progress)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+
+        // Listen for phone volume buttons pressed
+        val volumeReceiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val updatedVol = MusicManager.getSystemMediaVolume(this@MainActivity)
+                sbVolume.progress = updatedVol
+                tvVolumePercent.text = "${(updatedVol * 100 / maxVol)}%"
+            }
+        }
+        val filter = android.content.IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+        try {
+            registerReceiver(volumeReceiver, filter)
+        } catch (_: Exception) {}
+
+        dialog.setOnDismissListener {
+            try {
+                unregisterReceiver(volumeReceiver)
+            } catch (_: Exception) {}
+        }
 
         btnClose.setOnClickListener { dialog.dismiss() }
         dialog.show()

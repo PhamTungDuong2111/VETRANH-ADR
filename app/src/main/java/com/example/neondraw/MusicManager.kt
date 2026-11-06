@@ -1,6 +1,8 @@
 package com.example.neondraw
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.util.Log
 
@@ -16,7 +18,6 @@ object MusicManager {
     private const val PREF_NAME = "neon_music_pref"
     private const val KEY_SELECTED_TRACK = "selected_track_id"
     private const val KEY_IS_MUTED = "is_muted"
-    private const val KEY_VOLUME = "volume_level"
 
     val TRACKS = listOf(
         MusicTrack(1, "Bài 1", "1.mp3", R.raw.music_1),
@@ -30,7 +31,6 @@ object MusicManager {
     private var mediaPlayer: MediaPlayer? = null
     private var currentTrackId: Int = 1
     private var isMuted: Boolean = false
-    private var volume: Float = 0.8f
     private var isInitialized = false
 
     var onStateChanged: ((track: MusicTrack, isMuted: Boolean) -> Unit)? = null
@@ -41,7 +41,6 @@ object MusicManager {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         currentTrackId = prefs.getInt(KEY_SELECTED_TRACK, 1)
         isMuted = prefs.getBoolean(KEY_IS_MUTED, false)
-        volume = prefs.getFloat(KEY_VOLUME, 0.8f)
 
         if (!isMuted) {
             playTrack(context, currentTrackId)
@@ -61,9 +60,19 @@ object MusicManager {
             mediaPlayer?.release()
             mediaPlayer = null
 
-            mediaPlayer = MediaPlayer.create(context.applicationContext, track.resId)?.apply {
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build()
+
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(audioAttributes)
+                val afd = context.resources.openRawResourceFd(track.resId)
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
                 isLooping = true
-                setVolume(volume, volume)
+                prepare()
+                setVolume(1.0f, 1.0f) // 100% full scale - matches phone media volume 1:1!
                 start()
             }
         } catch (e: Exception) {
@@ -127,15 +136,22 @@ object MusicManager {
         notifyState()
     }
 
-    fun setVolume(context: Context, vol: Float) {
-        volume = vol.coerceIn(0f, 1f)
-        try {
-            mediaPlayer?.setVolume(volume, volume)
-        } catch (_: Exception) {}
-        savePrefs(context)
+    fun getSystemMediaVolume(context: Context): Int {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return am.getStreamVolume(AudioManager.STREAM_MUSIC)
     }
 
-    fun getVolume(): Float = volume
+    fun getSystemMaxMediaVolume(context: Context): Int {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    }
+
+    fun setSystemMediaVolume(context: Context, volumeIndex: Int) {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        am.setStreamVolume(AudioManager.STREAM_MUSIC, volumeIndex.coerceIn(0, max), 0)
+    }
+
     fun isMuted(): Boolean = isMuted
     fun getCurrentTrack(): MusicTrack = TRACKS.find { it.id == currentTrackId } ?: TRACKS.first()
     fun getCurrentTrackId(): Int = currentTrackId
@@ -183,7 +199,6 @@ object MusicManager {
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit()
             .putInt(KEY_SELECTED_TRACK, currentTrackId)
             .putBoolean(KEY_IS_MUTED, isMuted)
-            .putFloat(KEY_VOLUME, volume)
             .apply()
     }
 }
