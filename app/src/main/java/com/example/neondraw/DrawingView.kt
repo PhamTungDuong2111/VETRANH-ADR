@@ -609,4 +609,55 @@ class DrawingView @JvmOverloads constructor(
 
         return result
     }
+
+    fun getStrokes(): List<Stroke> = strokes.toList()
+
+    fun getBackgroundBitmap(): Bitmap? = backgroundBitmap
+
+    fun getTotalDrawingPoints(): Int = strokes.sumOf { it.points.size }
+
+    fun hasDrawing(): Boolean = strokes.isNotEmpty()
+
+    fun renderProgressToBitmap(progress: Float, targetWidth: Int = width, targetHeight: Int = height): Bitmap {
+        val w = if (targetWidth > 0) targetWidth else 1080
+        val h = if (targetHeight > 0) targetHeight else 1920
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+
+        // 1. Black background
+        canvas.drawColor(Color.BLACK)
+
+        // 2. Photo background
+        backgroundBitmap?.let { bg ->
+            val src = Rect(0, 0, bg.width, bg.height)
+            val dst = Rect(0, 0, w, h)
+            canvas.drawBitmap(bg, src, dst, null)
+        }
+
+        // 3. Render strokes up to progress
+        val totalPts = getTotalDrawingPoints()
+        if (totalPts == 0) return bmp
+
+        val targetPts = (totalPts * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
+        var pointsAccumulated = 0
+
+        for (stroke in strokes) {
+            val strokePts = stroke.points.size
+            if (pointsAccumulated + strokePts <= targetPts) {
+                // Render complete stroke
+                drawStroke(canvas, stroke)
+                pointsAccumulated += strokePts
+            } else {
+                // Partial stroke
+                val remaining = targetPts - pointsAccumulated
+                if (remaining >= 2) {
+                    val partialStroke = stroke.copy(points = stroke.points.take(remaining))
+                    drawStroke(canvas, partialStroke)
+                }
+                break
+            }
+        }
+
+        return bmp
+    }
 }

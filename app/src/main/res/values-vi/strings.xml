@@ -56,4 +56,19 @@
     <string name="toast_save_success">Đã lưu ảnh thành công vào Thư viện!</string>
     <string name="toast_save_error">Không thể lưu ảnh: %1$s</string>
     <string name="toast_lang_changed">Đã chuyển sang Tiếng Việt</string>
+
+    <!-- Music & Video -->
+    <string name="music">Âm nhạc</string>
+    <string name="music_settings">🎵 Nhạc nền</string>
+    <string name="music_subtitle">Chọn bài hát nền hoặc tắt âm thanh</string>
+    <string name="music_off">Đã tắt nhạc</string>
+    <string name="music_on">Đang phát nhạc</string>
+    <string name="video_replay_title">🎬 Video tái hiện nét vẽ</string>
+    <string name="export_mp4_video">🎥 Xuất video (MP4)</string>
+    <string name="exporting_video">Đang kết xuất video MP4… %1$d%%</string>
+    <string name="video_export_success">🎉 Đã xuất video vào Thư viện (Movies/NeonDraw)!</string>
+    <string name="video_export_error">Lỗi khi xuất video</string>
+    <string name="toast_no_drawing">Hãy vẽ một vài nét trước nhé!</string>
+    <string name="close">Đóng</string>
 </resources>
+

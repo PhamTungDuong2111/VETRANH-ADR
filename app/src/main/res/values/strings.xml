@@ -56,4 +56,18 @@
     <string name="toast_save_success">Artwork saved successfully to Gallery!</string>
     <string name="toast_save_error">Failed to save artwork: %1$s</string>
     <string name="toast_lang_changed">Language changed to English</string>
+
+    <!-- Music & Video -->
+    <string name="music">Music</string>
+    <string name="music_settings">🎵 Background Music</string>
+    <string name="music_subtitle">Select track or turn off sound</string>
+    <string name="music_off">Music Off (Muted)</string>
+    <string name="music_on">Music Playing</string>
+    <string name="video_replay_title">🎬 Drawing Timelapse Video</string>
+    <string name="export_mp4_video">🎥 Export Video (MP4)</string>
+    <string name="exporting_video">Encoding MP4 video… %1$d%%</string>
+    <string name="video_export_success">🎉 Video exported to Gallery (Movies/NeonDraw)!</string>
+    <string name="video_export_error">Failed to export video</string>
+    <string name="toast_no_drawing">Please draw something first!</string>
+    <string name="close">Close</string>
 </resources>

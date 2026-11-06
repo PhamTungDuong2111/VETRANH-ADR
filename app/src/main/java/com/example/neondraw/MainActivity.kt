@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.lifecycle.lifecycleScope
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -46,6 +47,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStencilBadge: TextView
     private lateinit var btnToggleStencilGuide: ImageButton
     private lateinit var btnPhoto: ImageButton
+    private lateinit var btnMusic: ImageButton
+    private lateinit var btnVideo: ImageButton
     private lateinit var btnShare: ImageButton
     private lateinit var btnSave: ImageButton
     private lateinit var btnClear: ImageButton
@@ -110,6 +113,8 @@ class MainActivity : AppCompatActivity() {
         LocaleHelper.init(this)
         setContentView(R.layout.activity_main)
 
+        MusicManager.init(this)
+
         initViews()
         setupTopBar()
         setupLanguageButton()
@@ -117,6 +122,21 @@ class MainActivity : AppCompatActivity() {
         setupBrushSize()
         setupColorPalette()
         setupHistoryListener()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        MusicManager.onResume(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        MusicManager.onPause()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        MusicManager.release()
     }
 
     private fun initViews() {
@@ -132,6 +152,8 @@ class MainActivity : AppCompatActivity() {
         tvStencilBadge = findViewById(R.id.tvStencilBadge)
         btnToggleStencilGuide = findViewById(R.id.btnToggleStencilGuide)
         btnPhoto = findViewById(R.id.btnPhoto)
+        btnMusic = findViewById(R.id.btnMusic)
+        btnVideo = findViewById(R.id.btnVideo)
         btnShare = findViewById(R.id.btnShare)
         btnSave = findViewById(R.id.btnSave)
         btnClear = findViewById(R.id.btnClear)
@@ -231,6 +253,12 @@ class MainActivity : AppCompatActivity() {
                 pickPhotoLauncher.launch("image/*")
             }
         }
+
+        // Music Selector
+        btnMusic.setOnClickListener { showMusicDialog() }
+
+        // Video Timelapse Replay & MP4 Export
+        btnVideo.setOnClickListener { showTimelapseDialog() }
 
         // Share Artwork
         btnShare.setOnClickListener { shareArtwork() }
@@ -580,5 +608,308 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.toast_save_error, e.message), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showMusicDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_music)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.90).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        val switchMusic = dialog.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.switchMusicToggle)
+        val sbVolume = dialog.findViewById<SeekBar>(R.id.sbVolume)
+        val tvVolumePercent = dialog.findViewById<TextView>(R.id.tvVolumePercent)
+        val container = dialog.findViewById<LinearLayout>(R.id.layoutTracksContainer)
+        val btnClose = dialog.findViewById<Button>(R.id.btnCloseMusic)
+
+        switchMusic.isChecked = !MusicManager.isMuted()
+        val curVol = (MusicManager.getVolume() * 100).toInt()
+        sbVolume.progress = curVol
+        tvVolumePercent.text = "$curVol%"
+
+        fun renderTracks() {
+            container.removeAllViews()
+            val currentId = MusicManager.getCurrentTrackId()
+            val isMuted = MusicManager.isMuted()
+
+            for (track in MusicManager.TRACKS) {
+                val isSelected = track.id == currentId && !isMuted
+
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        (48 * resources.displayMetrics.density).toInt()
+                    ).apply {
+                        setMargins(0, (4 * resources.displayMetrics.density).toInt(), 0, (4 * resources.displayMetrics.density).toInt())
+                    }
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(
+                        (14 * resources.displayMetrics.density).toInt(),
+                        0,
+                        (14 * resources.displayMetrics.density).toInt(),
+                        0
+                    )
+                    background = ContextCompat.getDrawable(
+                        this@MainActivity,
+                        if (isSelected) R.drawable.bg_neon_card else R.drawable.bg_glass_pill
+                    )
+
+                    val tvIcon = TextView(this@MainActivity).apply {
+                        text = if (isSelected) "▶️" else "🎵"
+                        textSize = 14f
+                    }
+                    val tvName = TextView(this@MainActivity).apply {
+                        text = track.name
+                        textSize = 14f
+                        setTextColor(if (isSelected) Color.parseColor("#00FFFF") else Color.WHITE)
+                        setTypeface(typeface, if (isSelected) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                            marginStart = (10 * resources.displayMetrics.density).toInt()
+                        }
+                    }
+
+                    addView(tvIcon)
+                    addView(tvName)
+
+                    setOnClickListener {
+                        MusicManager.playTrack(this@MainActivity, track.id)
+                        switchMusic.isChecked = true
+                        renderTracks()
+                    }
+                }
+                container.addView(row)
+            }
+        }
+
+        renderTracks()
+
+        switchMusic.setOnCheckedChangeListener { _, isChecked ->
+            MusicManager.setMute(this, !isChecked)
+            renderTracks()
+        }
+
+        sbVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    tvVolumePercent.text = "$progress%"
+                    MusicManager.setVolume(this@MainActivity, progress / 100f)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun showTimelapseDialog() {
+        if (!drawingView.hasDrawing()) {
+            Toast.makeText(this, getString(R.string.toast_no_drawing), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_timelapse)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.94).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        val ivPreview = dialog.findViewById<ImageView>(R.id.ivTimelapsePreview)
+        val ivCenterPlay = dialog.findViewById<ImageView>(R.id.ivCenterPlay)
+        val sbProgress = dialog.findViewById<SeekBar>(R.id.sbTimelapseProgress)
+        val tvProgressText = dialog.findViewById<TextView>(R.id.tvTimelapseProgressText)
+        val btnPlayPause = dialog.findViewById<ImageButton>(R.id.btnPlayPause)
+        val btnReplay = dialog.findViewById<ImageButton>(R.id.btnReplay)
+        val btnSpeed1x = dialog.findViewById<TextView>(R.id.btnSpeed1x)
+        val btnSpeed2x = dialog.findViewById<TextView>(R.id.btnSpeed2x)
+        val btnSpeed4x = dialog.findViewById<TextView>(R.id.btnSpeed4x)
+        val btnExport = dialog.findViewById<Button>(R.id.btnExportMp4)
+        val pbExport = dialog.findViewById<ProgressBar>(R.id.pbExportVideo)
+        val tvExportStatus = dialog.findViewById<TextView>(R.id.tvExportStatus)
+        val btnClose = dialog.findViewById<ImageButton>(R.id.btnCloseTimelapse)
+
+        var speed = 1.0f
+        var currentProgress = 0.05f
+        var isPlaying = true
+        var currentBitmap: Bitmap? = null
+
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val updateFrameRunnable = object : Runnable {
+            override fun run() {
+                if (!isPlaying) return
+
+                val step = (0.012f * speed)
+                currentProgress += step
+                if (currentProgress >= 1f) {
+                    currentProgress = 1f
+                    isPlaying = false
+                    btnPlayPause.setImageResource(R.drawable.ic_play)
+                    ivCenterPlay.visibility = View.VISIBLE
+                }
+
+                val previewBmp = drawingView.renderProgressToBitmap(currentProgress, 540, 960)
+                currentBitmap?.recycle()
+                currentBitmap = previewBmp
+                ivPreview.setImageBitmap(previewBmp)
+
+                sbProgress.progress = (currentProgress * 1000).toInt()
+                tvProgressText.text = "${(currentProgress * 100).toInt()}%"
+
+                if (isPlaying) {
+                    handler.postDelayed(this, 33)
+                }
+            }
+        }
+
+        fun updateSpeedButtons(activeSpeed: Float) {
+            speed = activeSpeed
+            btnSpeed1x.setTextColor(if (activeSpeed == 1f) Color.parseColor("#00FFFF") else Color.WHITE)
+            btnSpeed2x.setTextColor(if (activeSpeed == 2f) Color.parseColor("#00FFFF") else Color.WHITE)
+            btnSpeed4x.setTextColor(if (activeSpeed == 4f) Color.parseColor("#00FFFF") else Color.WHITE)
+        }
+
+        btnSpeed1x.setOnClickListener { updateSpeedButtons(1.0f) }
+        btnSpeed2x.setOnClickListener { updateSpeedButtons(2.0f) }
+        btnSpeed4x.setOnClickListener { updateSpeedButtons(4.0f) }
+
+        btnPlayPause.setOnClickListener {
+            if (isPlaying) {
+                isPlaying = false
+                handler.removeCallbacks(updateFrameRunnable)
+                btnPlayPause.setImageResource(R.drawable.ic_play)
+                ivCenterPlay.visibility = View.VISIBLE
+            } else {
+                if (currentProgress >= 1f) {
+                    currentProgress = 0.02f
+                }
+                isPlaying = true
+                btnPlayPause.setImageResource(R.drawable.ic_pause)
+                ivCenterPlay.visibility = View.GONE
+                handler.post(updateFrameRunnable)
+            }
+        }
+
+        ivCenterPlay.setOnClickListener {
+            btnPlayPause.performClick()
+        }
+
+        btnReplay.setOnClickListener {
+            currentProgress = 0.02f
+            isPlaying = true
+            btnPlayPause.setImageResource(R.drawable.ic_pause)
+            ivCenterPlay.visibility = View.GONE
+            handler.removeCallbacks(updateFrameRunnable)
+            handler.post(updateFrameRunnable)
+        }
+
+        sbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    currentProgress = progress / 1000f
+                    tvProgressText.text = "${(currentProgress * 100).toInt()}%"
+                    val previewBmp = drawingView.renderProgressToBitmap(currentProgress, 540, 960)
+                    currentBitmap?.recycle()
+                    currentBitmap = previewBmp
+                    ivPreview.setImageBitmap(previewBmp)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                if (isPlaying) {
+                    isPlaying = false
+                    handler.removeCallbacks(updateFrameRunnable)
+                    btnPlayPause.setImageResource(R.drawable.ic_play)
+                }
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        // Export MP4 Video
+        btnExport.setOnClickListener {
+            isPlaying = false
+            handler.removeCallbacks(updateFrameRunnable)
+            btnPlayPause.setImageResource(R.drawable.ic_play)
+
+            btnExport.isEnabled = false
+            pbExport.visibility = View.VISIBLE
+            tvExportStatus.visibility = View.VISIBLE
+            tvExportStatus.text = getString(R.string.exporting_video, 0)
+
+            lifecycleScope.launchWhenStarted {
+                val videoUri = VideoExporter.exportDrawingTimelapse(
+                    this@MainActivity,
+                    drawingView,
+                    durationSeconds = 6
+                ) { percent ->
+                    pbExport.progress = percent
+                    tvExportStatus.text = getString(R.string.exporting_video, percent)
+                }
+
+                btnExport.isEnabled = true
+                pbExport.visibility = View.GONE
+                tvExportStatus.visibility = View.GONE
+
+                if (videoUri != null) {
+                    Toast.makeText(this@MainActivity, getString(R.string.video_export_success), Toast.LENGTH_LONG).show()
+                    showVideoSuccessDialog(videoUri)
+                } else {
+                    Toast.makeText(this@MainActivity, getString(R.string.video_export_error), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        dialog.setOnDismissListener {
+            isPlaying = false
+            handler.removeCallbacks(updateFrameRunnable)
+            currentBitmap?.recycle()
+            currentBitmap = null
+        }
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        // Start playback immediately
+        btnPlayPause.setImageResource(R.drawable.ic_pause)
+        handler.post(updateFrameRunnable)
+
+        dialog.show()
+    }
+
+    private fun showVideoSuccessDialog(videoUri: Uri) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.video_replay_title))
+            .setMessage(getString(R.string.video_export_success))
+            .setPositiveButton(getString(R.string.btn_view_photo)) { _, _ ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(videoUri, "video/mp4")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton(getString(R.string.share)) { _, _ ->
+                try {
+                    val share = Intent(Intent.ACTION_SEND).apply {
+                        type = "video/mp4"
+                        putExtra(Intent.EXTRA_STREAM, videoUri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(Intent.createChooser(share, getString(R.string.share)))
+                } catch (e: Exception) {
+                    Toast.makeText(this, "${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.btn_continue_drawing), null)
+            .show()
     }
 }

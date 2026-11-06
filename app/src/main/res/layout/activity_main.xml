@@ -151,6 +151,26 @@
             android:src="@drawable/ic_image"
             app:tint="#FFFFFF" />
 
+        <!-- Music Selector Button -->
+        <ImageButton
+            android:id="@+id/btnMusic"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/music"
+            android:src="@drawable/ic_music"
+            app:tint="#BC13FE" />
+
+        <!-- Video Stroke Replay Button -->
+        <ImageButton
+            android:id="@+id/btnVideo"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/video_replay_title"
+            android:src="@drawable/ic_video"
+            app:tint="#FF6600" />
+
         <!-- Share Artwork -->
         <ImageButton
             android:id="@+id/btnShare"
